@@ -1,0 +1,2248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>POV Engine — Interactive Novel</title>
+<meta name="theme-color" content="#12100e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="POV Engine">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --bg:#12100e;
+  --bg2:#1a1714;
+  --bg3:#232019;
+  --panel:#1e1b17;
+  --card:#26221c;
+  --border:#3a352c;
+  --border-soft:#2e2a23;
+  --ink:#e8e0d0;
+  --ink-dim:#a89d88;
+  --ink-faint:#6f6757;
+  --accent:#c9a227;
+  --accent-soft:#8a6d1f;
+  --accent-ink:#1a1610;
+  --red:#c0563f;
+  --green:#7ba05b;
+  --blue:#5b84a0;
+  --serif:'Iowan Old Style','Palatino Linotype','Book Antiqua',Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  --mono:'SF Mono',SFMono-Regular,ui-monospace,'Cascadia Mono',Consolas,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--sans);
+  font-size:15px;
+  line-height:1.55;
+}
+::selection{background:var(--accent-soft);color:#fff}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:5px}
+::-webkit-scrollbar-thumb:hover{background:var(--ink-faint)}
+
+/* ---------- layout ---------- */
+#app{display:flex;flex-direction:column;height:100%}
+header{
+  display:flex;align-items:center;gap:14px;
+  padding:calc(10px + env(safe-area-inset-top, 0px)) 18px 10px;
+  background:var(--bg2);
+  border-bottom:1px solid var(--border-soft);
+  flex-wrap:wrap;
+}
+header .logo{
+  font-family:var(--serif);
+  font-size:19px;letter-spacing:.5px;
+  color:var(--accent);
+  white-space:nowrap;
+}
+header .logo span{color:var(--ink-dim);font-size:13px;margin-left:6px;letter-spacing:1px}
+#storyTitleHead{
+  color:var(--ink-dim);font-size:13px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  max-width:28ch;
+}
+nav.tabs{display:flex;gap:2px;margin-left:auto;flex-wrap:wrap}
+nav.tabs button{
+  background:transparent;border:1px solid transparent;color:var(--ink-dim);
+  padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13.5px;
+  transition:all .15s;
+}
+nav.tabs button:hover{color:var(--ink);background:var(--bg3)}
+nav.tabs button.active{background:var(--bg3);color:var(--accent);border-color:var(--border)}
+nav.tabs button .badge{
+  display:inline-block;background:var(--accent);color:var(--accent-ink);
+  font-size:10px;border-radius:8px;padding:0 5px;margin-left:5px;vertical-align:1px;
+}
+main{flex:1;overflow:hidden;position:relative}
+.view{display:none;height:100%;overflow-y:auto}
+.view.active{display:block}
+.narrow{max-width:860px;margin:0 auto;padding:28px 20px 90px}
+
+/* ---------- generic controls ---------- */
+h1{font-family:var(--serif);font-weight:600;font-size:26px;margin-bottom:6px}
+h2{font-family:var(--serif);font-weight:600;font-size:19px;color:var(--accent);margin:26px 0 10px}
+h2:first-child{margin-top:0}
+h3{font-size:14px;font-weight:600;color:var(--ink-dim);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.8px}
+p.hint{color:var(--ink-faint);font-size:12.5px;margin:4px 0 10px}
+label.f{display:block;font-size:12.5px;font-weight:600;color:var(--ink-dim);margin:14px 0 5px;letter-spacing:.3px}
+input[type=text],input[type=password],input[type=number],textarea,select{
+  width:100%;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  color:var(--ink);
+  border-radius:8px;
+  padding:9px 12px;
+  font-size:14px;
+  font-family:inherit;
+  outline:none;
+  transition:border-color .15s;
+}
+input:focus,textarea:focus,select:focus{border-color:var(--accent-soft)}
+textarea{resize:vertical;min-height:80px;line-height:1.5}
+textarea.mono{font-family:var(--mono);font-size:12.5px}
+button.btn{
+  background:var(--card);border:1px solid var(--border);color:var(--ink);
+  padding:9px 18px;border-radius:8px;cursor:pointer;font-size:14px;
+  transition:all .15s;font-family:inherit;
+}
+button.btn:hover{border-color:var(--accent-soft);color:var(--accent)}
+button.btn.primary{
+  background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600;
+}
+button.btn.primary:hover{background:#dcb52f;color:#000}
+button.btn.danger:hover{border-color:var(--red);color:var(--red)}
+button.btn.small{padding:5px 11px;font-size:12.5px;border-radius:6px}
+button.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.grow{flex:1}
+.card{background:var(--panel);border:1px solid var(--border-soft);border-radius:12px;padding:18px 20px;margin-bottom:16px}
+.pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:10px;background:var(--bg3);border:1px solid var(--border);color:var(--ink-dim);letter-spacing:.5px}
+.spacer{height:10px}
+a{color:var(--accent)}
+
+/* ---------- setup wizard ---------- */
+.steps{display:flex;gap:8px;margin:18px 0 24px;flex-wrap:wrap}
+.steps .step{
+  font-size:12px;padding:5px 12px;border-radius:14px;
+  border:1px solid var(--border);color:var(--ink-faint);
+}
+.steps .step.on{border-color:var(--accent);color:var(--accent)}
+.steps .step.done{color:var(--green);border-color:var(--green)}
+.wizPage{display:none}
+.wizPage.active{display:block;animation:fadeIn .25s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.modelrow{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;margin-bottom:10px}
+.modelrow .mlabel{font-size:13px;color:var(--ink-dim)}
+@media(max-width:560px){.modelrow{grid-template-columns:1fr}}
+.keystatus{font-size:12.5px;margin-left:8px}
+.keystatus.ok{color:var(--green)}
+.keystatus.bad{color:var(--red)}
+
+/* ---------- story log ---------- */
+#storyView{display:flex;flex-direction:column;height:100%}
+#log{
+  flex:1;overflow-y:auto;
+  padding:26px 0 20px;
+  scroll-behavior:smooth;
+}
+#log .inner{max-width:760px;margin:0 auto;padding:0 22px}
+.beat{margin-bottom:26px;animation:fadeIn .3s}
+.beat .prose{
+  font-family:var(--serif);
+  font-size:17px;line-height:1.75;
+  color:var(--ink);
+  white-space:pre-wrap;
+}
+.beat .prose em{color:var(--ink-dim)}
+.beat.player{
+  border-left:2px solid var(--accent-soft);
+  padding:8px 0 8px 16px;
+  margin-left:4px;
+}
+.beat.player .plabel{font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+.beat.player .ptext{font-family:var(--serif);font-size:15.5px;line-height:1.6;color:var(--ink-dim);white-space:pre-wrap}
+.beat.player .ptext b{color:var(--ink);font-weight:600}
+.beat.dice-rec{
+  display:flex;align-items:center;gap:12px;
+  background:var(--bg3);border:1px solid var(--border-soft);
+  border-radius:10px;padding:10px 16px;font-size:13.5px;color:var(--ink-dim);
+}
+.beat.dice-rec .dval{
+  font-family:var(--serif);font-size:22px;color:var(--accent);font-weight:700;min-width:34px;text-align:center;
+}
+.beat.sysnote{font-size:12.5px;color:var(--ink-faint);text-align:center;font-style:italic}
+.beat.hroll{font-size:12.5px;color:var(--ink-faint);text-align:center;font-style:italic}
+.beat.hroll button{background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:11px;text-decoration:underline dotted;padding:0 2px}
+.beat.hroll button:hover{color:var(--accent)}
+.beat.hroll .hdetail{margin:8px auto 0;max-width:420px;background:var(--bg3);border:1px solid var(--border-soft);border-radius:8px;padding:8px 12px;font-style:normal;text-align:left;color:var(--ink-dim);font-size:12.5px}
+.beat.sceneimg{text-align:center}
+.beat.sceneimg img{max-width:100%;max-height:70vh;border-radius:12px;border:1px solid var(--border-soft);box-shadow:0 6px 24px rgba(0,0,0,.4)}
+.beat.sceneimg .imgtools{display:flex;gap:10px;justify-content:center;margin-top:6px;opacity:.5}
+.beat.sceneimg .imgtools:hover{opacity:1}
+.beat.sceneimg .imgtools button,.beat.sceneimg .imgtools a{background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:11.5px;text-decoration:none}
+.beat.sceneimg .imgtools button:hover,.beat.sceneimg .imgtools a:hover{color:var(--accent)}
+.beat.sceneimg .imgpend{color:var(--ink-faint);font-size:12px;font-style:italic;padding:20px;border:1px dashed var(--border);border-radius:12px}
+.beat .beat-tools{margin-top:6px;opacity:.45;transition:opacity .15s;display:flex;gap:8px;flex-wrap:wrap}
+.beat:hover .beat-tools{opacity:1}
+.beat .beat-tools button{
+  background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:11.5px;padding:2px 6px;
+}
+.beat .beat-tools button:hover{color:var(--accent)}
+
+/* ---------- thinking indicator ---------- */
+#thinking{display:none;align-items:center;gap:10px;color:var(--ink-faint);font-size:13px;font-style:italic;padding:4px 0 14px}
+#thinking.on{display:flex}
+.dots span{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);margin-right:3px;animation:blink 1.2s infinite}
+.dots span:nth-child(2){animation-delay:.2s}
+.dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.2}40%{opacity:1}}
+
+/* ---------- error bar ---------- */
+#errBar{display:none;background:#3a1f18;border:1px solid var(--red);border-radius:10px;padding:10px 14px;margin:8px 0;font-size:13px;color:#e8b5a5}
+#errBar.on{display:block}
+#errBar button{margin-left:10px}
+
+/* ---------- input dock ---------- */
+#dock{
+  border-top:1px solid var(--border-soft);
+  background:var(--bg2);
+  padding:12px 18px calc(14px + env(safe-area-inset-bottom, 0px));
+}
+#dock .inner{max-width:760px;margin:0 auto}
+#dock .boxes{display:grid;grid-template-columns:1fr;gap:8px}
+#dock textarea{min-height:44px;max-height:180px;font-size:14px;background:var(--bg3)}
+#dock textarea#inMain{min-height:64px;font-family:var(--serif);font-size:15px}
+#dock .sub{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:620px){#dock .sub{grid-template-columns:1fr}}
+#dock .boxlabel{font-size:10.5px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-faint);margin-bottom:3px}
+#dock .dockrow{display:flex;gap:10px;margin-top:9px;align-items:center}
+#dock .subtoggle{background:none;border:none;color:var(--ink-faint);font-size:12px;cursor:pointer;padding:2px 4px}
+#dock .subtoggle:hover{color:var(--accent)}
+#dock .sub.hidden{display:none}
+
+/* ---------- dice (compact corner widget) ---------- */
+#dicePanel{
+  display:none;
+  margin:8px 0 2px auto;
+  max-width:100%;
+  width:fit-content;
+  animation:fadeIn .25s;
+}
+#dicePanel.on{display:block}
+#dicePanel .dcard{
+  display:flex;align-items:center;gap:10px;
+  background:var(--bg3);
+  border:1px solid var(--accent-soft);
+  border-radius:11px;
+  padding:6px 8px 6px 6px;
+  max-width:100%;
+}
+#dicePanel .dmeta{min-width:0}
+#dicePanel .dreason{
+  font-size:12.5px;color:var(--ink-dim);
+  max-width:44ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+#dicePanel .rolllabel{white-space:nowrap}
+#diceOutcomes{
+  display:none;margin-top:8px;
+  background:var(--bg3);border:1px solid var(--border-soft);border-radius:10px;padding:6px;
+}
+#diceOutcomes.open{display:block}
+#diceOutcomes .oc{
+  display:grid;grid-template-columns:48px 1fr;gap:8px;
+  padding:4px 7px;border-radius:6px;font-size:12px;
+  color:var(--ink-dim);
+}
+#diceOutcomes .oc:nth-child(odd){background:rgba(255,255,255,.025)}
+#diceOutcomes .oc .rng{color:var(--accent);font-family:var(--mono);font-size:11px}
+#diceOutcomes .oc.hit{background:var(--accent-soft);color:#fff}
+#diceOutcomes .oc.hit .rng{color:#fff}
+#toggleOutcomes{
+  background:none;border:1px dashed var(--border);color:var(--ink-faint);
+  width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:13px;line-height:1;flex-shrink:0;
+}
+#toggleOutcomes:hover{color:var(--accent);border-color:var(--accent-soft)}
+/* hidden (blind) roll — grey die, no outcomes, no result */
+#dicePanel.hiddenroll .dcard{border-color:var(--border);background:var(--bg2)}
+#dicePanel.hiddenroll .d20wrap svg{filter:grayscale(1) brightness(.75)}
+#dicePanel.hiddenroll .dnum{color:#3a3a3a}
+#dicePanel.hiddenroll #toggleOutcomes{display:none}
+#dicePanel.hiddenroll .dreason{font-style:italic}
+
+/* d20 */
+.d20wrap{position:relative;width:46px;height:46px;cursor:pointer;user-select:none;flex-shrink:0}
+.d20wrap svg{width:100%;height:100%;display:block;filter:drop-shadow(0 2px 5px rgba(0,0,0,.5))}
+.d20wrap .dnum{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-size:15px;font-weight:700;color:var(--accent-ink);
+  pointer-events:none;padding-top:2px;
+}
+.d20wrap.rolling{animation:shake .12s infinite}
+@keyframes shake{
+  0%{transform:rotate(-7deg) translateX(-2px)}
+  50%{transform:rotate(7deg) translateX(2px)}
+  100%{transform:rotate(-5deg) translateX(-1px)}
+}
+.d20wrap.landed{animation:pop .35s}
+@keyframes pop{0%{transform:scale(.85)}55%{transform:scale(1.12)}100%{transform:scale(1)}}
+.rolllabel{font-size:12.5px;color:var(--ink-faint)}
+
+/* ---------- memory ---------- */
+.memGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.memGrid{grid-template-columns:1fr}}
+.memItem{background:var(--card);border:1px solid var(--border-soft);border-radius:10px;padding:12px 14px;margin-bottom:10px}
+.memItem .mhead{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.memItem .mname{font-weight:600;font-size:14px;color:var(--accent);flex:1}
+.memItem textarea{font-size:13px;min-height:56px;background:var(--bg2)}
+.memItem input{font-size:13px;margin-bottom:6px;background:var(--bg2)}
+.memItem .mdel{background:none;border:none;color:var(--ink-faint);cursor:pointer;font-size:14px}
+.memItem .mdel:hover{color:var(--red)}
+#memStatus{font-size:12px;color:var(--ink-faint);font-style:italic}
+
+/* ---------- novel ---------- */
+#novelChapters{max-width:700px;margin:0 auto;padding:10px 0 60px}
+#novelChapters:empty::before{content:'Your novel will appear here as the story unfolds…';color:var(--ink-faint);font-style:italic}
+.chapter{margin-bottom:44px}
+.chapter .chead{text-align:center;margin-bottom:18px}
+.chapter .cnum{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--ink-faint)}
+.chapter .ctitle{font-family:var(--serif);font-size:22px;color:var(--accent);margin-top:4px}
+.chapter .cprose{font-family:var(--serif);font-size:17.5px;line-height:1.85;white-space:pre-wrap;color:var(--ink)}
+.chapter .cprose:empty::before{content:'…not written yet';color:var(--ink-faint);font-style:italic}
+.chapter.stale .cprose{opacity:.5}
+.chapter .cstale{font-size:12px;color:var(--red);text-align:center;margin-bottom:8px;font-style:italic}
+.chapter .ctools{display:flex;gap:8px;justify-content:center;margin-top:12px;opacity:.6}
+.chapter .ctools:hover{opacity:1}
+.chapter textarea.cedit{width:100%;min-height:40vh;font-family:var(--serif);font-size:16px;line-height:1.8}
+
+/* ---------- library ---------- */
+.slot{display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--border-soft);border-radius:10px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:border-color .15s}
+.slot:hover{border-color:var(--accent-soft)}
+.slot .sname{font-family:var(--serif);font-size:16px;flex:1}
+.slot .smeta{font-size:12px;color:var(--ink-faint)}
+
+/* ---------- modal ---------- */
+#modalBack{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:50;align-items:center;justify-content:center;padding:20px}
+#modalBack.on{display:flex}
+#modal{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px 24px;max-width:520px;width:100%;max-height:85vh;overflow-y:auto}
+#modal h2{margin-top:0}
+
+/* toast */
+#toast{
+  position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--card);border:1px solid var(--accent-soft);color:var(--ink);
+  padding:10px 20px;border-radius:10px;font-size:13.5px;z-index:99;
+  transition:transform .3s;box-shadow:0 6px 24px rgba(0,0,0,.5);
+}
+#toast.on{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <div class="logo">POV Engine<span id="verSpan">interactive novel</span></div>
+  <div id="storyTitleHead"></div>
+  <nav class="tabs">
+    <button data-tab="library" id="tabLibrary">Library</button>
+    <button data-tab="story" id="tabStory">Story</button>
+    <button data-tab="novel" id="tabNovel">Novel</button>
+    <button data-tab="memory" id="tabMemory">Memory</button>
+    <button data-tab="settings" id="tabSettings">Settings</button>
+  </nav>
+</header>
+<main>
+
+<!-- ============ LIBRARY / HOME ============ -->
+<div class="view" id="view-library">
+  <div class="narrow">
+    <h1>Library</h1>
+    <p class="hint">Your stories are saved automatically in this browser. Export a save file to back up or move to another device.</p>
+    <div id="slotList"></div>
+    <div class="row" style="margin-top:18px">
+      <button class="btn primary" id="btnNewStory">+ New story</button>
+      <button class="btn" id="btnImportSave">Import save file</button>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none">
+    </div>
+    <div class="card" style="margin-top:26px">
+      <h3>OpenRouter connection</h3>
+      <p class="hint">Your key is stored only in this browser and sent only to openrouter.ai. It is never included in exported save files.</p>
+      <div class="row">
+        <input type="password" id="apiKey" class="grow" placeholder="sk-or-v1-...">
+        <button class="btn" id="btnTestKey">Test key</button>
+        <span class="keystatus" id="keyStatus"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SETUP WIZARD ============ -->
+<div class="view" id="view-setup">
+  <div class="narrow">
+    <h1>New story</h1>
+    <div class="steps">
+      <div class="step" data-step="0">1 · Models</div>
+      <div class="step" data-step="1">2 · World &amp; backstory</div>
+      <div class="step" data-step="2">3 · Style &amp; guidelines</div>
+    </div>
+
+    <div class="wizPage" data-page="0">
+      <div class="card">
+        <h2>API &amp; models</h2>
+        <p class="hint">Requests go directly from your browser to OpenRouter. Pick any model ID — type to search the live model list, or paste a model ID manually.</p>
+        <label class="f">OpenRouter API key</label>
+        <div class="row">
+          <input type="password" id="wizKey" class="grow" placeholder="sk-or-v1-...">
+          <button class="btn" id="wizTestKey">Test</button>
+          <span class="keystatus" id="wizKeyStatus"></span>
+        </div>
+        <div class="spacer"></div>
+        <div class="modelrow"><div class="mlabel">Story model 1</div><input type="text" id="mRoleplay" list="modelList" placeholder="e.g. anthropic/claude-sonnet-4.5"></div>
+        <div class="modelrow"><div class="mlabel">Story model 2 <span class="pill">optional</span></div><input type="text" id="mRoleplay2" list="modelList" placeholder="a second storyteller — gives you two Continue buttons"></div>
+        <div class="modelrow"><div class="mlabel">Memory keeper</div><input type="text" id="mMemory" list="modelList" placeholder="e.g. a cheaper/faster model"></div>
+        <div class="modelrow"><div class="mlabel">Novelist</div><input type="text" id="mNovel" list="modelList" placeholder="e.g. a strong prose model"></div>
+        <datalist id="modelList"></datalist>
+        <datalist id="imageModelList"></datalist>
+        <p class="hint" id="modelListStatus">Model list loads once a key is entered (or from openrouter.ai directly).</p>
+      </div>
+      <div class="row"><button class="btn" id="wizCancel0">Cancel</button><div class="grow"></div><button class="btn primary" id="wizNext0">Continue →</button></div>
+    </div>
+
+    <div class="wizPage" data-page="1">
+      <div class="card">
+        <h2>World &amp; backstory</h2>
+        <label class="f">Story title</label>
+        <input type="text" id="wizTitle" placeholder="Untitled story">
+        <label class="f">Your character (name &amp; who you are)</label>
+        <textarea id="wizProtagonist" placeholder="Name, age, skills, personality, background… The story is told through this character's eyes."></textarea>
+        <label class="f">Lore &amp; initial point</label>
+        <textarea id="wizLore" style="min-height:160px" placeholder="Paste the world, its rules, factions, magic/tech, key NPCs, history — everything the storyteller must know from the start."></textarea>
+        <label class="f">Starting point (the opening scene)</label>
+        <textarea id="wizStart" placeholder="Where and how the story opens. E.g. 'I wake up in a cell beneath the citadel, the night before my trial…'"></textarea>
+      </div>
+      <div class="row"><button class="btn" id="wizBack1">← Back</button><div class="grow"></div><button class="btn primary" id="wizNext1">Continue →</button></div>
+    </div>
+
+    <div class="wizPage" data-page="2">
+      <div class="card">
+        <h2>Style &amp; guidelines</h2>
+        <p class="hint">These are re-sent with every single request, so the storyteller never drifts from them.</p>
+        <label class="f">Writing style</label>
+        <textarea id="wizStyle" style="min-height:110px" placeholder="Tone, pacing, vocabulary, sentence rhythm, how much dialogue vs description, POV preferences…"></textarea>
+        <label class="f">Guidelines &amp; rules</label>
+        <textarea id="wizGuidelines" style="min-height:110px" placeholder="Hard rules: what the storyteller must / must never do. E.g. 'Never decide my character's actions or words. Keep NPCs consistent. Consequences are permanent.'"></textarea>
+        <label class="f">Story language</label>
+        <input type="text" id="wizLanguage" placeholder="English" value="English">
+      </div>
+      <div class="row"><button class="btn" id="wizBack2">← Back</button><div class="grow"></div><button class="btn primary" id="wizBegin">Begin the story ▶</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ STORY ============ -->
+<div class="view" id="view-story">
+  <div id="storyView">
+    <div id="log"><div class="inner" id="logInner"></div></div>
+    <div id="dock">
+      <div class="inner">
+        <div id="thinking"><div class="dots"><span></span><span></span><span></span></div><span id="thinkingLabel">The story is being written…</span></div>
+        <div id="errBar"><span id="errMsg"></span><button class="btn small" id="btnRetry">Retry</button></div>
+
+        <div class="boxes" id="inputBoxes">
+          <div>
+            <div class="boxlabel">Your action · dialogue · decision</div>
+            <textarea id="inMain" placeholder="What do you do? What do you say?"></textarea>
+          </div>
+          <button class="subtoggle" id="btnSubToggle">▸ narration &amp; scene lore (optional)</button>
+          <div class="sub hidden" id="subBoxes">
+            <div>
+              <div class="boxlabel">Complementary narration</div>
+              <textarea id="inNarration" placeholder="Things happening around/alongside your action…"></textarea>
+            </div>
+            <div>
+              <div class="boxlabel">Scene lore (for the storyteller)</div>
+              <textarea id="inLore" placeholder="Facts the storyteller should know for this scene…"></textarea>
+            </div>
+          </div>
+        </div>
+        <div id="dicePanel">
+          <div class="dcard">
+            <button id="toggleOutcomes" title="show the possible outcomes">+</button>
+            <div class="dmeta">
+              <div class="dreason" id="diceReason"></div>
+              <div class="rolllabel" id="rollLabel">tap the die to roll</div>
+            </div>
+            <div class="d20wrap" id="d20" title="Roll the d20">
+              <svg viewBox="0 0 100 100"><polygon points="50,3 93,26 93,74 50,97 7,74 7,26" fill="#c9a227" stroke="#8a6d1f" stroke-width="2.5"/><polygon points="50,3 93,26 50,50" fill="#dcb52f" opacity=".55"/><polygon points="7,26 50,3 50,50" fill="#b28d1e" opacity=".45"/><polygon points="50,50 93,74 50,97" fill="#a07d15" opacity=".4"/><polygon points="50,50 7,74 50,97" fill="#8a6d1f" opacity=".35"/></svg>
+              <div class="dnum" id="d20num">?</div>
+            </div>
+          </div>
+          <div id="diceOutcomes"></div>
+        </div>
+        <div class="dockrow">
+          <button class="btn small" id="btnPaint" title="Generate an image of the current scene">🎨</button>
+          <button class="btn small" id="btnNarrate" title="Narrate the latest scene aloud">🔊</button>
+          <span class="rolllabel" id="dockStatus"></span>
+          <div class="grow"></div>
+          <button class="btn" id="btnSpark" title="Yield the beat: an NPC takes initiative or a small grounded event happens">✦ something happens</button>
+          <button class="btn primary" id="btnSend">Continue ▶</button>
+          <button class="btn primary" id="btnSend2" style="display:none">Continue 2 ▶</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ NOVEL ============ -->
+<div class="view" id="view-novel">
+  <div class="narrow">
+    <div class="row">
+      <h1 class="grow">The Novel</h1>
+      <button class="btn small" id="btnNewChapter" title="Close the current chapter; the next scene starts a new one">End chapter here</button>
+      <button class="btn small" id="btnRebuildNovel" title="Re-novelize every chapter from the raw story">Rebuild all</button>
+      <button class="btn small" id="btnCopyNovel">Copy</button>
+      <button class="btn small" id="btnDownloadNovel">Download .txt</button>
+    </div>
+    <p class="hint" id="novelStatus"></p>
+    <div id="novelChapters"></div>
+  </div>
+</div>
+
+<!-- ============ MEMORY ============ -->
+<div class="view" id="view-memory">
+  <div class="narrow">
+    <div class="row">
+      <h1 class="grow">Memory</h1>
+      <span id="memStatus"></span>
+      <button class="btn small" id="btnUpdateMem">Update from story now</button>
+    </div>
+    <p class="hint">The memory keeper updates this automatically after each scene. Everything here is editable — it's what the storyteller "remembers". Click any field to edit; changes save instantly.</p>
+    <div class="memGrid">
+      <div>
+        <h2>Characters</h2><div id="memChars"></div><button class="btn small" data-addmem="characters">+ add character</button>
+        <h2>Locations</h2><div id="memLocs"></div><button class="btn small" data-addmem="locations">+ add location</button>
+      </div>
+      <div>
+        <h2>Events</h2><div id="memEvents"></div><button class="btn small" data-addmem="events">+ add event</button>
+        <h2>Conversations</h2><div id="memConvos"></div><button class="btn small" data-addmem="conversations">+ add conversation</button>
+      </div>
+    </div>
+    <h2>World notes</h2>
+    <textarea id="memNotes" style="min-height:100px" placeholder="Freeform notes the storyteller should always remember…"></textarea>
+  </div>
+</div>
+
+<!-- ============ SETTINGS ============ -->
+<div class="view" id="view-settings">
+  <div class="narrow">
+    <h1>Settings</h1>
+    <div class="card">
+      <h2>Story</h2>
+      <label class="f">Title</label><input type="text" id="setTitle">
+      <label class="f">Your character</label><textarea id="setProtagonist"></textarea>
+      <label class="f">Lore &amp; initial point</label><textarea id="setLore" style="min-height:120px"></textarea>
+      <label class="f">Writing style <span class="pill">sent every turn</span></label><textarea id="setStyle"></textarea>
+      <label class="f">Guidelines <span class="pill">sent every turn</span></label><textarea id="setGuidelines"></textarea>
+      <label class="f">Story language</label><input type="text" id="setLanguage">
+    </div>
+    <div class="card">
+      <h2>Models</h2>
+      <div class="modelrow"><div class="mlabel">Story model 1</div><input type="text" id="setMRoleplay" list="modelList"></div>
+      <div class="modelrow"><div class="mlabel">Story model 2 <span class="pill">optional</span></div><input type="text" id="setMRoleplay2" list="modelList" placeholder="second storyteller — adds a second Continue button"></div>
+      <div class="modelrow"><div class="mlabel">Memory keeper</div><input type="text" id="setMMemory" list="modelList"></div>
+      <div class="modelrow"><div class="mlabel">Novelist</div><input type="text" id="setMNovel" list="modelList"></div>
+      <label class="f">Dice frequency</label>
+      <select id="setDiceBias">
+        <option value="high">Frequent (recommended) — most turns earn one roll; skip only when nothing is uncertain</option>
+        <option value="balanced">Balanced — roll only at clear points of uncertainty</option>
+        <option value="normal">Minimal — dice rules live only in the system prompt</option>
+      </select>
+      <label class="f">Recent story window (turns sent verbatim to the storyteller)</label>
+      <input type="number" id="setWindow" min="2" max="60" step="1">
+      <label class="f">Temperature (roleplay)</label>
+      <input type="number" id="setTemp" min="0" max="2" step="0.1">
+    </div>
+    <div class="card">
+      <h2>Scene painting &amp; narration</h2>
+      <div class="modelrow"><div class="mlabel">Image model</div><div class="row" style="gap:8px;flex-wrap:nowrap"><input type="text" id="setMImage" list="imageModelList" class="grow" placeholder="type to see image-capable models…"><button class="btn small" id="btnTestImage">Test</button></div></div>
+      <p class="hint">Uses your OpenRouter key. Only models that can OUTPUT images work here (e.g. google/gemini-2.5-flash-image, sometimes listed with a -preview suffix). <span id="imageModelHint"></span> Images are kept in this browser (they're too large for save files).</p>
+      <label class="f">Visual style for scene images</label>
+      <textarea id="setImgStyle" placeholder="empty = photorealistic film still. Or set your own: e.g. 'photorealistic, gritty documentary photography, historically accurate 1000 AD' · 'oil painting, Rembrandt lighting' · 'dark fantasy concept art'…"></textarea>
+      <label class="f">Visual canon <span class="pill">sent with every image</span></label>
+      <textarea id="setVisualCanon" placeholder="Lock appearances and places so images stay consistent: 'Lana: 19, long chestnut hair, green eyes, grey wool dress. The inn: low timber ceiling, smoke-stained walls, one small window…' Character descriptions from Memory are also included automatically."></textarea>
+      <label class="f">Narrator (TTS) provider</label>
+      <select id="setTtsProvider">
+        <option value="browser">Built-in browser voices — free, no setup (iPhone's Siri voices work well)</option>
+        <option value="elevenlabs">ElevenLabs — best quality, needs its own API key</option>
+        <option value="openai">OpenAI TTS — needs an OpenAI API key</option>
+      </select>
+      <label class="f">Voice</label>
+      <input type="text" id="setTtsVoice" placeholder="browser: part of a voice name (e.g. 'Daniel') · ElevenLabs: a voice ID · OpenAI: alloy, onyx, nova…">
+      <label class="f">TTS API key <span class="pill">only for ElevenLabs / OpenAI · stays in this browser</span></label>
+      <input type="password" id="ttsKey" placeholder="xi-… or sk-…">
+      <label class="f">Narration speed</label>
+      <input type="number" id="setTtsRate" min="0.5" max="2" step="0.1">
+    </div>
+    <div class="card">
+      <h2>Prompt templates</h2>
+      <p class="hint">The standardized structures sent to each model. Placeholders like {STYLE}, {GUIDELINES}, {LORE}, {MEMORY}, {LANGUAGE}, {PROTAGONIST} are filled in automatically. Edit freely; "Reset" restores defaults.</p>
+      <label class="f">Roleplay system prompt</label>
+      <textarea id="setPromptRoleplay" class="mono" style="min-height:220px"></textarea>
+      <label class="f">Memory keeper prompt</label>
+      <textarea id="setPromptMemory" class="mono" style="min-height:140px"></textarea>
+      <label class="f">Novelist prompt</label>
+      <textarea id="setPromptNovel" class="mono" style="min-height:140px"></textarea>
+      <div class="row" style="margin-top:10px"><button class="btn small" id="btnResetPrompts">Reset all templates to defaults</button></div>
+    </div>
+    <div class="card">
+      <h2>Save management</h2>
+      <div class="row">
+        <button class="btn" id="btnExportSave">Export this story (.json)</button>
+        <button class="btn danger" id="btnDeleteStory">Delete this story</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<div id="modalBack"><div id="modal"></div></div>
+<div id="toast"></div>
+<script>
+"use strict";
+/* =====================================================================
+   POV Engine — single-file interactive novel experience
+   All data lives in your browser (localStorage) + exportable JSON saves.
+   ===================================================================== */
+
+/* ---------------- default prompt templates ---------------- */
+const PROMPTS_VERSION = 8;
+const DEFAULT_PROMPTS = {
+roleplay:
+`You are the storyteller-engine of an interactive novel. The player IS the protagonist; everything is experienced through their eyes. You narrate the world, events, consequences, and every NPC — you never control the protagonist.
+
+=== LANGUAGE ===
+Write the story in {LANGUAGE}.
+
+=== PROTAGONIST (played by the user — never act, speak, think or decide for them) ===
+{PROTAGONIST}
+
+=== WORLD & LORE ===
+{LORE}
+
+=== WRITING STYLE (follow at all times) ===
+{STYLE}
+
+=== GUIDELINES (hard rules — follow at all times) ===
+{GUIDELINES}
+
+=== MEMORY (canonical facts established so far — stay consistent with these) ===
+{MEMORY}
+
+=== HOW TO PLAY YOUR PART ===
+Continue the story: paint the picture, give context, move NPCs with their own motives, decisions and dialogue. Make events concrete and consequential. Then STOP at any moment where the protagonist would act, speak, or decide — and wait for the player.
+
+User turns may contain:
+[ACTION] — what the protagonist does / says / decides. Treat as canon.
+[NARRATION] — co-narration from the player: things happening alongside. Weave in as true.
+[SCENE LORE] — facts the storyteller must know for this scene. Treat as established lore.
+[DICE RESULT n — outcome: ...] — the result of a d20 roll you requested. Narrate exactly that outcome, expanded vividly.
+[FEEDBACK] — the player rejected your previous version of this part and explains why. Rewrite that part applying the feedback; keep everything before it unchanged.
+
+=== SCENE & DESCRIPTION ===
+- Sensory detail: paint each scene vividly — sights, sounds, smells, textures, the surroundings and setting. Be rich in physical and anatomical detail where relevant.
+- Show, don't tell: no narrator editorializing, no explaining characters or their feelings from outside; reveal everything through action, speech and detail.
+- No melodrama: no exaggeration, no far-fetched turns for drama's sake. Events stay realistic and logical for the setting and era. Present the era's harsh realities as mundane facts to the characters — never sanitize, never inject values or sensibilities the setting would not hold.
+
+=== CHARACTERS ===
+- NPC AGENCY IS MANDATORY. NPCs are never filler or scenery. In every scene, the people present DO things: they speak first as often as they answer, they interrupt, joke, argue, work, scheme, want things and act on those wants whether or not the protagonist engages them. Every scene with people in it must contain NPC action and NPC dialogue. An NPC who merely stands, waits, or reacts blandly is a failure — give each one business, a mood, and a goal of their own right now.
+- Humans first, roles second: NPCs think, act and speak as real people, not calculating robots. They can lie, boast, err, be ignorant, change their mind.
+- Limited knowledge: characters only know what is plausibly within their reach. If one might happen to know something beyond it, resolve that with a dice roll (e.g. 18–20: he happens to know).
+- No stereotypes, no cliches, no default animosity — that is cartoonish. If a character keeps reacting the same way, break the pattern.
+- The world moves on regardless of the protagonist: independent, setting-appropriate events can occur. Use dice for them.
+- NEVER write the protagonist's thoughts, feelings, or inner reflections — those belong to the player alone.
+
+=== RHYTHM & LENGTH ===
+Match the length of your response to the moment — do NOT write a long passage every time.
+- In conversation, write SHORT: the NPC's line, a gesture, maybe one beat of reaction — then stop for the player's answer. Real back-and-forth dialogue, line by line, is one of the best parts of the story; never bulldoze it with paragraphs.
+- Save long, rich passages for when they're earned: a new scene, a new place, a dramatic turn, the aftermath of a roll.
+- A response can be two lines. It can be one. Stop the moment the protagonist would speak or act.
+
+=== PROSE DISCIPLINE ===
+- Never recycle wording, sentences, actions or scene structures. Avoid tic-patterns like "He did A, not B, not C."
+- Transcript fidelity: when in doubt, trust only what the transcript and MEMORY establish. Never invent reminiscences of events that never happened.
+
+=== DICE ===
+Dice decide meaningful uncertainty — never you, and never the convenience of the story.
+WHEN TO ROLL: the success of a non-trivial attempt (an attack, a lie, persuasion, sneaking, a climb), what or who the protagonist finds when stepping into the unknown, how a volatile person reacts, whether something is noticed, knowledge checks, independent world events. Roll readily — most player attempts and most steps into the unknown carry real uncertainty, so a typical exchange earns a roll; when genuinely in doubt, roll. But resolve ONE uncertainty per response (the most important one), don't stack several dice requests, and never roll for trivial or guaranteed things. Dice punctuate the story; they never replace it, and they never replace NPC initiative.
+ROLL FIRST, THEN NARRATE — this ordering is essential:
+- When the player's input itself carries the uncertainty (they attempt something, step into the unknown, meet someone new), do NOT narrate the outcome-dependent part first. Return the dice request IMMEDIATELY, with "narrative" as an empty string or at most ONE short lead-in sentence. After the result arrives, write ONE full response that weaves the player's input and the rolled outcome together as a single continuous beat — never a stub before the roll and a stub after.
+- Only when uncertainty emerges partway through a scene you are already narrating (an NPC does something mid-beat whose result is open) should narrative precede the dice request — and then it must END at exactly the uncertain moment.
+Probability analysis first: before requesting the roll, weigh the odds from context, the protagonist's skills, the lore, and realism — then encode those odds in the ranges. Odds may be extremely biased when context demands it, but outcomes must remain strictly probability-based. No exceptions for the story's sake.
+HIDDEN ROLLS: some things must be decided by dice but NOT shown to the player — an arriving stranger's true nature or intentions (kind, cruel, lustful, aggressive, honest…), whether a lie went unnoticed, what stalks them in the dark, an NPC's secret loyalties. For these, add "hidden": true to the dice object. The player is shown a grey die and taps it blind: they never see the outcomes or the result — only you do, and it is stored in your hidden memory. For hidden rolls the "reason" MUST be vague and non-spoiling (e.g. "something unseen about the stranger", "fate stirs") — never hint at what is being decided. Let the hidden outcome quietly steer events — never state the roll, the odds, or the outcome text in the narrative; reveal the truth only through the character's behavior as the scene unfolds. Use hidden rolls for secrets and delayed consequences, visible rolls for outcomes the protagonist would immediately perceive.
+- An easy task for a skilled character might fail only on 1–2.
+- A very difficult task might require 19–20.
+- An impossible act (leaping from a cliff and trying to fly) can be death on every number — only the flavor of death varies.
+Ranges must cover 1–20 exactly, no gaps, no overlaps. 2–6 outcomes is typical. Write outcome texts as short, concrete summaries.
+
+=== OUTPUT FORMAT ===
+Respond ONLY with valid JSON — no markdown fences, no commentary — in exactly this shape:
+{"narrative":"the next part of the story (use \\n\\n between paragraphs)","dice":null}
+or, when a roll is needed, end the narrative at the moment of uncertainty and set:
+{"narrative":"...","dice":{"reason":"one line: what hangs on this roll","outcomes":[{"min":1,"max":4,"text":"..."},{"min":5,"max":16,"text":"..."},{"min":17,"max":20,"text":"..."}]}}
+For a hidden roll add "hidden":true inside the dice object.
+Use EXACTLY these key names: "narrative", "dice", "reason", "outcomes", "min", "max", "text". Never use keys like "ranges", "roll", "range", "outcome", or "results" — they will not be understood. "min" and "max" are plain integers from 1 to 20.`,
+
+memory:
+`You are the memory keeper of an interactive novel. You maintain the canonical memory of the story as JSON.
+
+You will receive the CURRENT MEMORY and the LATEST SCENE (raw story material). Return the complete UPDATED memory:
+- Merge new facts; update descriptions, relationships and character arcs as they evolve.
+- Add new characters, locations, events and notable conversations.
+- Keep entries dense, factual and short — this memory is injected into future prompts.
+- Never drop established facts unless the scene explicitly contradicts them.
+- Write in {LANGUAGE}.
+
+Respond ONLY with valid JSON — no markdown fences — in exactly this shape:
+{"characters":[{"name":"","description":"","relationship":"relation to the protagonist","story":"their arc so far"}],"locations":[{"name":"","description":""}],"events":[{"title":"","summary":""}],"conversations":[{"participants":"","summary":""}]}`,
+
+novel:
+`You are the novelist of an interactive story. You will be given the raw transcript of one chapter — storyteller narration, the protagonist's actions and words, and dice outcomes — and you must render it as one continuous chapter of a novel, written in FIRST PERSON, past tense, from the protagonist's point of view ("I").
+
+Protagonist: {PROTAGONIST}
+Language: {LANGUAGE}
+Style to follow: {STYLE}
+The story's guidelines also apply to the prose: {GUIDELINES}
+
+ABSOLUTE FIDELITY — this is the most important rule:
+- The chapter must match the transcript EXACTLY: every event, every action, every decision, every line of dialogue, every dice outcome, in the same order, with the same content. Nothing added, nothing removed, nothing altered.
+- Do not invent thoughts, feelings, motives, comparisons or memories that are not in the transcript.
+- Do not compress or skip scenes. Everything in the transcript appears in the chapter.
+Your only freedoms: converting narration addressed to "you" into "I" prose, smoothing the seams between storyteller text and player input, choosing paragraph breaks, and small connective phrases so it reads as a novel. That is all.
+
+Output format: the first line must be exactly "TITLE: " followed by a short evocative chapter title, then a blank line, then the full chapter prose. No other headers, notes, or commentary.`
+};
+
+/* ---------------- constants & storage ---------------- */
+const APP_VERSION = "v16";
+const LS_KEY   = "povengine.apikey";
+const LS_INDEX = "povengine.index";
+const LS_STORY = id => "povengine.story." + id;
+const OR_BASE  = "https://openrouter.ai/api/v1";
+
+function lsGet(k, fallback){ try{ const v = localStorage.getItem(k); return v===null? fallback : v; }catch(e){ return fallback; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){ console.warn("localStorage write failed", e); } }
+function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+
+function getIndex(){ try{ return JSON.parse(lsGet(LS_INDEX,"[]"))||[]; }catch(e){ return []; } }
+function setIndex(ix){ lsSet(LS_INDEX, JSON.stringify(ix)); }
+
+let S = null;          // current story object
+let busy = false;      // a roleplay call is in flight
+let lastFailedSend = null; // for retry
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+function newStory(){
+  return {
+    version: 1,
+    id: uid(),
+    title: "Untitled story",
+    created: Date.now(),
+    updated: Date.now(),
+    config: { models:{roleplay:"",roleplay2:"",memory:"",novel:"",image:""}, language:"English", temperature:0.9, window:16, diceBias:"high", lastRoleplay:"roleplay",
+              imageStyle:"", tts:{provider:"browser", voice:"", rate:1} },
+    images: [],
+    setup: { protagonist:"", lore:"", start:"", style:"", guidelines:"" },
+    prompts: { roleplay: DEFAULT_PROMPTS.roleplay, memory: DEFAULT_PROMPTS.memory, novel: DEFAULT_PROMPTS.novel },
+    promptsVersion: PROMPTS_VERSION,
+    log: [],
+    pendingDice: null,
+    feedback: null,
+    memory: { characters:[], locations:[], events:[], conversations:[], notes:"" },
+    memSnaps: [],
+    memCursor: 0,
+    novelChapters: [],
+    novel: "", novelCursor: 0 // legacy fields, kept for save-file compatibility
+  };
+}
+
+function saveStory(){
+  if(!S) return;
+  S.updated = Date.now();
+  lsSet(LS_STORY(S.id), JSON.stringify(S));
+  const ix = getIndex().filter(e=>e.id!==S.id);
+  ix.unshift({id:S.id, title:S.title, updated:S.updated, beats:S.log.filter(e=>e.t==='story').length});
+  setIndex(ix);
+}
+function loadStory(id){
+  try{
+    const raw = lsGet(LS_STORY(id), null);
+    if(!raw) return null;
+    const st = JSON.parse(raw);
+    // forward-compat guards
+    st.prompts = Object.assign({roleplay:DEFAULT_PROMPTS.roleplay,memory:DEFAULT_PROMPTS.memory,novel:DEFAULT_PROMPTS.novel}, st.prompts||{});
+    st.memory  = Object.assign({characters:[],locations:[],events:[],conversations:[],notes:""}, st.memory||{});
+    st.config  = Object.assign({models:{},language:"English",temperature:0.9,window:16,diceBias:"high",lastRoleplay:"roleplay",imageStyle:"",tts:{provider:"browser",voice:"",rate:1}}, st.config||{});
+    st.config.tts = Object.assign({provider:"browser",voice:"",rate:1}, st.config.tts||{});
+    st.images = Array.isArray(st.images)? st.images : [];
+    st.memSnaps = Array.isArray(st.memSnaps)? st.memSnaps : [];
+    if(!Array.isArray(st.novelChapters)){
+      st.novelChapters = [];
+      if(typeof st.novel === "string" && st.novel.trim()){
+        // migrate old single-string novel into chapter 1 (marked stale so it gets rebuilt faithfully)
+        st.novelChapters.push({id:uid(), title:"", from:0, to:null, upTo:Math.min(st.novelCursor||0, st.log.length), prose:st.novel, stale:true});
+      }
+    }
+    if((st.promptsVersion||1) < PROMPTS_VERSION){
+      st.prompts = {roleplay:DEFAULT_PROMPTS.roleplay, memory:DEFAULT_PROMPTS.memory, novel:DEFAULT_PROMPTS.novel};
+      st.promptsVersion = PROMPTS_VERSION;
+      setTimeout(()=>toast("Prompt templates upgraded to the new defaults (see Settings)"), 800);
+    }
+    return st;
+  }catch(e){ return null; }
+}
+function deleteStory(id){
+  lsDel(LS_STORY(id));
+  setIndex(getIndex().filter(e=>e.id!==id));
+}
+
+/* ---------------- tiny dom helpers ---------------- */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+function el(tag, attrs, ...children){
+  const n = document.createElement(tag);
+  if(attrs) for(const [k,v] of Object.entries(attrs)){
+    if(k==="class") n.className = v;
+    else if(k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k,v);
+  }
+  for(const c of children){ if(c==null) continue; n.appendChild(typeof c==="string"? document.createTextNode(c) : c); }
+  return n;
+}
+let toastTimer = null;
+function toast(msg){
+  const t = $("#toast"); t.textContent = msg; t.classList.add("on");
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove("on"), 2600);
+}
+function modal(contentNode){
+  $("#modal").innerHTML = ""; $("#modal").appendChild(contentNode);
+  $("#modalBack").classList.add("on");
+}
+function closeModal(){ $("#modalBack").classList.remove("on"); }
+$("#modalBack") && null;
+
+/* ---------------- OpenRouter API ---------------- */
+function apiKey(){ return ($("#apiKey").value || "").trim(); }
+
+function friendlyNetError(e){
+  const msg = (e && e.message) || String(e);
+  if(/failed to fetch|networkerror|load failed|network request failed/i.test(msg)){
+    return "Could not reach openrouter.ai — the request was blocked before it left this page. " +
+      "This usually means the app is running inside a sandboxed preview (e.g. viewing the file inside a chat app). " +
+      "Download the HTML file and open it in a real browser — Chrome, Safari, Firefox, Edge — then try again. " +
+      "If you ARE in a real browser: check your connection, and disable ad-blockers/VPN for openrouter.ai.";
+  }
+  return msg;
+}
+
+async function orChat(model, messages, {temperature=0.9, maxTokens=4000, label="request"}={}){
+  const key = apiKey();
+  if(!key) throw new Error("No API key set. Add your OpenRouter key in Library.");
+  if(!model) throw new Error("No model selected for this role. Set it in Settings.");
+  let res;
+  try{
+    res = await fetch(OR_BASE + "/chat/completions", {
+      method:"POST",
+      headers:{
+        "Authorization":"Bearer " + key,
+        "Content-Type":"application/json",
+        "HTTP-Referer":"https://localhost/pov-engine",
+        "X-Title":"POV Engine"
+      },
+      body: JSON.stringify({ model, messages, temperature, max_tokens: maxTokens })
+    });
+  }catch(e){ throw new Error(friendlyNetError(e)); }
+  if(!res.ok){
+    let detail = "";
+    try{ const j = await res.json(); detail = j.error?.message || JSON.stringify(j).slice(0,300); }catch(e){ detail = await res.text().catch(()=> ""); }
+    throw new Error(`OpenRouter ${res.status} on ${label}: ${detail}`);
+  }
+  const data = await res.json();
+  const txt = data.choices?.[0]?.message?.content;
+  if(typeof txt !== "string" || !txt.trim()) throw new Error(`Empty response from ${model} (${label}).`);
+  return txt;
+}
+
+/* Image generation via OpenRouter (same key; needs an image-capable model) */
+async function orImage(model, prompt, refImageUrl){
+  const key = apiKey();
+  if(!key) throw new Error("No API key set.");
+  if(!model) throw new Error("No image model set (Settings → Scene painting).");
+  const content = refImageUrl? [{type:"text", text:prompt}, {type:"image_url", image_url:{url:refImageUrl}}] : prompt;
+  const attempt = async (modalities)=>{
+    try{
+      return await fetch(OR_BASE + "/chat/completions", {
+        method:"POST",
+        headers:{"Authorization":"Bearer "+key, "Content-Type":"application/json", "HTTP-Referer":"https://localhost/pov-engine", "X-Title":"POV Engine"},
+        body: JSON.stringify({ model, messages:[{role:"user", content}], modalities })
+      });
+    }catch(e){ throw new Error(friendlyNetError(e)); }
+  };
+  // Gemini-style models output image+text; pure image models (Flux, Recraft…) only accept ["image"].
+  let res = await attempt(["image","text"]);
+  if(!res.ok){
+    let detail=""; try{ const j=await res.json(); detail=j.error?.message||""; }catch(e){}
+    if(res.status===404 && /output modalit/i.test(detail)){
+      res = await attempt(["image"]); // image-only model — retry with the modality it supports
+      if(!res.ok){
+        let d2=""; try{ const j=await res.json(); d2=j.error?.message||""; }catch(e){}
+        throw new Error(`OpenRouter ${res.status} on image: ${d2||detail}`);
+      }
+    }else{
+      throw new Error(`OpenRouter ${res.status} on image: ${detail}`);
+    }
+  }
+  const data = await res.json();
+  const msg = data.choices?.[0]?.message;
+  const url = extractImageUrl(msg);
+  if(!url){
+    const said = (typeof msg?.content==="string"? msg.content : JSON.stringify(msg?.content||"")).slice(0,220);
+    throw new Error("The model returned no image — it must be an image-OUTPUT model (pick one from the suggestions; text/vision models can't paint). It said: “" + (said||"nothing") + "”");
+  }
+  return url;
+}
+function extractImageUrl(msg){
+  if(!msg) return null;
+  const imgs = msg.images;
+  if(Array.isArray(imgs) && imgs.length){
+    const it = imgs[0];
+    if(typeof it === "string") return it;
+    return it?.image_url?.url || it?.url || (it?.b64_json? "data:image/png;base64,"+it.b64_json : null);
+  }
+  const c = msg.content;
+  if(Array.isArray(c)){
+    for(const part of c){
+      const u = part?.image_url?.url || part?.url || (part?.b64_json? "data:image/png;base64,"+part.b64_json : null);
+      if(u) return u;
+    }
+  }
+  if(typeof c === "string"){
+    const m = c.match(/data:image\/[a-z.+-]+;base64,[A-Za-z0-9+/=]+/);
+    if(m) return m[0];
+  }
+  return null;
+}
+
+/* IndexedDB store for generated images (too big for localStorage saves) */
+function idb(){
+  return new Promise((ok, bad)=>{
+    const rq = indexedDB.open("povengine-images", 1);
+    rq.onupgradeneeded = ()=>rq.result.createObjectStore("img");
+    rq.onsuccess = ()=>ok(rq.result);
+    rq.onerror = ()=>bad(rq.error);
+  });
+}
+async function idbPut(id, dataUrl){
+  try{ const db = await idb(); return new Promise((ok,bad)=>{ const tx=db.transaction("img","readwrite"); tx.objectStore("img").put(dataUrl, id); tx.oncomplete=ok; tx.onerror=()=>bad(tx.error); }); }
+  catch(e){ console.warn("idb put failed", e); }
+}
+async function idbGet(id){
+  try{ const db = await idb(); return new Promise((ok)=>{ const rq=db.transaction("img").objectStore("img").get(id); rq.onsuccess=()=>ok(rq.result||null); rq.onerror=()=>ok(null); }); }
+  catch(e){ return null; }
+}
+async function idbDel(id){
+  try{ const db = await idb(); db.transaction("img","readwrite").objectStore("img").delete(id); }catch(e){}
+}
+
+/* Robust JSON extraction from an LLM reply */
+function extractJSON(text){
+  let t = text.trim();
+  t = t.replace(/^```(?:json)?\s*/i,"").replace(/```\s*$/,"").trim();
+  const first = t.indexOf("{");
+  const last  = t.lastIndexOf("}");
+  if(first !== -1 && last > first){
+    const cand = t.slice(first, last+1);
+    try{ return JSON.parse(cand); }catch(e){}
+    // try fixing common issues: trailing commas
+    try{ return JSON.parse(cand.replace(/,\s*([}\]])/g, "$1")); }catch(e){}
+  }
+  return null;
+}
+
+async function fetchModelList(){
+  const status = $("#modelListStatus");
+  try{
+    const headers = {};
+    const key = apiKey() || ($("#wizKey")? $("#wizKey").value.trim() : "");
+    if(key) headers["Authorization"] = "Bearer " + key;
+    const res = await fetch(OR_BASE + "/models", {headers});
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    const dl = $("#modelList"); dl.innerHTML = "";
+    const idl = $("#imageModelList"); if(idl) idl.innerHTML = "";
+    let imgCount = 0;
+    (data.data||[]).sort((a,b)=> (a.id<b.id?-1:1)).forEach(m=>{
+      const o = document.createElement("option");
+      o.value = m.id; o.label = m.name || m.id;
+      dl.appendChild(o);
+      const outMods = m.architecture?.output_modalities || m.output_modalities || [];
+      if(idl && Array.isArray(outMods) && outMods.includes("image")){
+        const oi = document.createElement("option");
+        oi.value = m.id; oi.label = m.name || m.id;
+        idl.appendChild(oi); imgCount++;
+      }
+    });
+    if(status) status.textContent = `${(data.data||[]).length} models loaded — type to search.`;
+    const ihint = $("#imageModelHint");
+    if(ihint) ihint.textContent = imgCount? `${imgCount} image-capable models found — the field suggests only those.` : "Could not detect image-capable models; check openrouter.ai/models?output_modalities=image for valid IDs.";
+  }catch(e){
+    if(status) status.textContent = "Could not load model list ("+friendlyNetError(e)+") — you can still paste any model ID manually.";
+  }
+}
+
+async function testKey(inputSel, statusSel){
+  const key = $(inputSel).value.trim();
+  const st = $(statusSel);
+  st.className = "keystatus"; st.textContent = "testing…";
+  if(!key){ st.classList.add("bad"); st.textContent = "no key"; return false; }
+  try{
+    const res = await fetch(OR_BASE + "/key", {headers:{"Authorization":"Bearer "+key}});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const j = await res.json();
+    st.classList.add("ok");
+    const lim = j.data?.limit_remaining;
+    st.textContent = "✓ valid" + (lim!=null? ` · $${Number(lim).toFixed(2)} left` : "");
+    return true;
+  }catch(e){
+    st.classList.add("bad"); st.textContent = "✗ " + friendlyNetError(e); return false;
+  }
+}
+
+/* ---------------- prompt building ---------------- */
+function fillTemplate(tpl){
+  const memDigest = memoryDigest();
+  return tpl
+    .replaceAll("{LANGUAGE}", S.config.language || "English")
+    .replaceAll("{PROTAGONIST}", S.setup.protagonist || "(not described)")
+    .replaceAll("{LORE}", S.setup.lore || "(none)")
+    .replaceAll("{STYLE}", S.setup.style || "(author's choice)")
+    .replaceAll("{GUIDELINES}", S.setup.guidelines || "(none beyond the built-in rules)")
+    .replaceAll("{MEMORY}", memDigest || "(story just beginning — nothing established yet)");
+}
+
+function memoryDigest(){
+  const m = S.memory; const parts = [];
+  if(m.characters.length) parts.push("CHARACTERS:\n" + m.characters.map(c=>`- ${c.name}: ${c.description||""}${c.relationship? " | Relationship: "+c.relationship:""}${c.story? " | Story: "+c.story:""}`).join("\n"));
+  if(m.locations.length)  parts.push("LOCATIONS:\n" + m.locations.map(l=>`- ${l.name}: ${l.description||""}`).join("\n"));
+  if(m.events.length)     parts.push("EVENTS SO FAR:\n" + m.events.map(e=>`- ${e.title}: ${e.summary||""}`).join("\n"));
+  if(m.conversations.length) parts.push("NOTABLE CONVERSATIONS:\n" + m.conversations.map(c=>`- (${c.participants}) ${c.summary||""}`).join("\n"));
+  if(m.notes && m.notes.trim()) parts.push("WORLD NOTES:\n" + m.notes.trim());
+  const hidden = (S.log||[]).filter(e=>e.t==="dice" && e.hidden);
+  if(hidden.length) parts.push("HIDDEN ROLLS — secrets the player has NOT seen. Never reveal the roll or these outcome texts; let them quietly steer events until the story naturally uncovers them:\n" + hidden.slice(-12).map(h=>`- ${h.reason}: rolled ${h.value} → ${h.outcomeText}`).join("\n"));
+  return parts.join("\n\n");
+}
+
+/* Convert a log entry to chat-message text */
+function playerEntryText(e){
+  const parts = [];
+  if(e.action) parts.push("[ACTION] " + e.action);
+  if(e.narration) parts.push("[NARRATION] " + e.narration);
+  if(e.lore) parts.push("[SCENE LORE] " + e.lore);
+  return parts.join("\n");
+}
+
+function buildMessages(){
+  const msgs = [{role:"system", content: fillTemplate(S.prompts.roleplay)}];
+  const win = Math.max(2, Number(S.config.window)||16);
+  // take last `win` log entries, but always include an opening user message
+  const entries = S.log.slice(-win);
+  const truncated = S.log.length > win;
+  const opening = `[BEGIN STORY]\nOpening scene / starting point:\n${S.setup.start || "(author's choice — begin the story)"}\n\nBegin the story now. Remember the output format.`;
+  msgs.push({role:"user", content: opening + (truncated? "\n\n(Note: earlier parts of the story are summarized in MEMORY above; the transcript below resumes mid-story.)" : "")});
+  if(truncated) msgs.push({role:"assistant", content: JSON.stringify({narrative:"(story in progress — continuing from the transcript below)", dice:null})});
+  for(const e of entries){
+    if(e.t==="story"){
+      msgs.push({role:"assistant", content: JSON.stringify({narrative:e.text, dice: e.dice||null})});
+    }else if(e.t==="player"){
+      msgs.push({role:"user", content: playerEntryText(e) || "[ACTION] (continue)"});
+    }else if(e.t==="dice"){
+      if(e.hidden){
+        msgs.push({role:"user", content: `[HIDDEN DICE RESULT ${e.value} — outcome: ${e.outcomeText}]\n(This roll is HIDDEN from the player. Never state the roll, the mechanics, or this outcome text directly — let it quietly shape what happens. Continue the story.)`});
+      }else{
+        msgs.push({role:"user", content: `[DICE RESULT ${e.value} — outcome: ${e.outcomeText}]\nNow write the ONE full response for this beat: weave the player's input and this rolled outcome together into a single continuous scene.`});
+      }
+    }else if(e.t==="world"){
+      let wt = "[WORLD TURN] The protagonist holds back this beat — they do not act or speak. Someone or something else present takes the initiative instead: an NPC acts or speaks from their own motives, ongoing work or conversation moves, a small consequence of earlier events lands. Keep it grounded and mundane for the setting — no melodrama, no coincidences, no sudden threats or dramatic revelations unless a dice roll earns them. If what happens is genuinely variable, you may go straight to a dice request to decide it. A short beat is fine.";
+      if(e.narration) wt += "\n[NARRATION] " + e.narration;
+      if(e.lore) wt += "\n[SCENE LORE] " + e.lore;
+      msgs.push({role:"user", content: wt});
+    }
+  }
+  if(S.feedback && S.feedback.note){
+    msgs.push({role:"user", content: `[FEEDBACK] Your previous version of the next part was rejected by the player.\n--- previous version ---\n${S.feedback.prev}\n--- end of previous version ---\nPlayer feedback: "${S.feedback.note}"\nRewrite that part of the story now, applying the feedback. Keep everything established before it unchanged. Remember the output format.`});
+  }
+  // merge consecutive same-role user messages (some APIs dislike them)
+  const merged = [];
+  for(const m of msgs){
+    const prev = merged[merged.length-1];
+    if(prev && prev.role===m.role && m.role!=="system") prev.content += "\n\n" + m.content;
+    else merged.push({...m});
+  }
+  // Dice enforcement: system prompts get ignored in long contexts, so on every
+  // player turn re-state the roll requirement at the very end of the request,
+  // where the model's attention actually is.
+  const bias = S.config.diceBias||"high";
+  if(bias !== "normal"){
+    const lastEntry = S.log[S.log.length-1];
+    const applies = !S.log.length || (lastEntry && (lastEntry.t==="player" || lastEntry.t==="world")) || S.feedback;
+    const lastMsg = merged[merged.length-1];
+    if(applies && lastMsg && lastMsg.role==="user"){
+      const NOTE_COMMON = ' NPCs present must act and speak with their own agenda — never passive filler. Match length to the moment: in a conversation, a short NPC reply and stop beats a page of prose. Dice format: {"dice":{"reason":"...","outcomes":[{"min":..,"max":..,"text":".."},...]}} covering 1–20, odds from probability analysis, attached at the END of the narrative (or straight to the roll with little/no narrative when the player steps into the unknown).]';
+      const NOTE_FREQ = '\n\n[ENGINE NOTE — not part of the story: Lean toward rolling. If this turn contains ANY attempt or variable event whose outcome is not guaranteed — success of an action, what or who is found, how someone reacts, whether something is noticed or known — request a d20 FIRST: narrative empty (or one lead-in sentence), dice request now; the full response comes after the result, weaving input and outcome into one beat. Use "hidden":true (with a vague reason) for things the protagonist could not perceive, like a stranger\'s true nature. Most turns deserve one roll (only one). Skip dice only when truly nothing is uncertain.' + NOTE_COMMON;
+      const NOTE_BAL = '\n\n[ENGINE NOTE — not part of the story: If this turn\'s outcome is genuinely uncertain, request the d20 FIRST — narrative empty or one lead-in sentence — and write the full beat after the result. Use "hidden":true with a vague reason for secrets the protagonist could not perceive. If nothing meaningful is uncertain, "dice":null — do not force rolls.' + NOTE_COMMON;
+      lastMsg.content += (bias==="balanced"? NOTE_BAL : NOTE_FREQ);
+    }
+  }
+  return merged;
+}
+</script>
+<script>
+"use strict";
+/* =====================================================================
+   UI wiring, game loop, dice, memory, novelization, library
+   ===================================================================== */
+
+/* ---------------- tabs ---------------- */
+function switchTab(name){
+  $$(".view").forEach(v=>v.classList.remove("active"));
+  const target = $("#view-"+name);
+  if(target) target.classList.add("active");
+  $$("nav.tabs button").forEach(b=>b.classList.toggle("active", b.dataset.tab===name));
+  if(name==="memory") renderMemory();
+  if(name==="novel") renderNovel();
+  if(name==="settings") renderSettings();
+  if(name==="library") renderLibrary();
+  if(name==="story"){ scrollLog(); }
+}
+$$("nav.tabs button").forEach(b=>{
+  b.addEventListener("click", ()=>{
+    const t = b.dataset.tab;
+    if(t!=="library" && !S){ toast("Open or create a story first"); return; }
+    switchTab(t);
+  });
+});
+
+/* ---------------- story log rendering ---------------- */
+function renderLog(){
+  const inner = $("#logInner"); inner.innerHTML = "";
+  S.log.forEach((e,i)=>{
+    inner.appendChild(beatNode(e,i));
+    (S.images||[]).filter(im=>im.afterIndex===i).forEach(im=>inner.appendChild(imageNode(im)));
+  });
+  updateHeader();
+  scrollLog();
+}
+function imageNode(im){
+  const d = el("div",{class:"beat sceneimg"});
+  const holder = el("div",{class:"imgpend"},"…loading scene painting…");
+  d.appendChild(holder);
+  idbGet(im.id).then(url=>{
+    if(!url){ holder.textContent = "🎨 (this painting isn't stored on this device)"; return; }
+    const img = document.createElement("img"); img.src = url; img.alt = "scene painting";
+    d.replaceChild(img, holder);
+    const tools = el("div",{class:"imgtools"});
+    const a = document.createElement("a"); a.textContent = "⬇ save"; a.href = url; a.download = "scene-"+im.id+".png";
+    tools.appendChild(a);
+    tools.appendChild(el("button",{onclick:()=>redoImage(im)},"↻ redo"));
+    tools.appendChild(el("button",{onclick:()=>{ if(!confirm("Remove this painting?")) return; S.images = S.images.filter(x=>x!==im); idbDel(im.id); saveStory(); renderLog(); }},"✕ remove"));
+    d.appendChild(tools);
+  });
+  return d;
+}
+function beatNode(e, i){
+  const isLast = i === S.log.length-1;
+  if(e.t==="story"){
+    const d = el("div",{class:"beat"});
+    d.appendChild(el("div",{class:"prose"}, e.text));
+    if(!busy){
+      const tools = el("div",{class:"beat-tools"});
+      if(isLast){
+        tools.appendChild(el("button",{onclick:()=>feedbackLast()},"✍ feedback"));
+        tools.appendChild(el("button",{onclick:()=>regenerateLast()},"↻ regenerate"));
+        tools.appendChild(el("button",{onclick:()=>deleteLast()},"✕ remove"));
+      }
+      tools.appendChild(el("button",{onclick:()=>editEntry(i)},"✎ edit"));
+      tools.appendChild(el("button",{title:"narrate this part", onclick:()=>narrateText(e.text)},"🔊"));
+      tools.appendChild(el("button",{title:"paint this scene", onclick:()=>paintScene(i)},"🎨"));
+      if(!isLast) tools.appendChild(el("button",{onclick:()=>rewindTo(i)},"✂ rewind to here"));
+      d.appendChild(tools);
+    }
+    return d;
+  }
+  if(e.t==="player"){
+    const d = el("div",{class:"beat player"});
+    d.appendChild(el("div",{class:"plabel"},"You"));
+    const p = el("div",{class:"ptext"});
+    if(e.action){ const b=document.createElement("b"); b.textContent=e.action; p.appendChild(b); }
+    if(e.narration){ p.appendChild(document.createTextNode((e.action?"\n":"")+"↳ "+e.narration)); }
+    if(e.lore){ p.appendChild(document.createTextNode(((e.action||e.narration)?"\n":"")+"✦ lore: "+e.lore)); }
+    d.appendChild(p);
+    if(!busy){
+      const tools = el("div",{class:"beat-tools"});
+      tools.appendChild(el("button",{onclick:()=>editEntry(i)},"✎ edit"));
+      if(isLast) tools.appendChild(el("button",{onclick:()=>deleteLast()},"✕ remove"));
+      else tools.appendChild(el("button",{onclick:()=>rewindTo(i)},"✂ rewind to here"));
+      d.appendChild(tools);
+    }
+    return d;
+  }
+  if(e.t==="dice" && e.hidden){
+    const d = el("div",{class:"beat hroll"});
+    const line = el("div",{});
+    line.appendChild(document.createTextNode("⚄ a hidden roll shapes fate… "));
+    line.appendChild(el("button",{onclick:()=>{ e.revealed = !e.revealed; saveStory(); renderLog(); }}, e.revealed? "conceal" : "reveal"));
+    d.appendChild(line);
+    if(e.revealed){
+      d.appendChild(el("div",{class:"hdetail"},
+        el("div",{style:"color:var(--ink-faint);font-size:11.5px"}, e.reason||""),
+        el("div",{}, `rolled ${e.value} → ${e.outcomeText||""}`)));
+    }
+    return d;
+  }
+  if(e.t==="dice"){
+    const d = el("div",{class:"beat dice-rec"});
+    d.appendChild(el("div",{class:"dval"}, String(e.value)));
+    d.appendChild(el("div",{}, el("div",{style:"color:var(--ink-dim);font-size:12px"}, e.reason||"Fate's roll"), el("div",{style:"color:var(--ink)"}, e.outcomeText||"")));
+    return d;
+  }
+  if(e.t==="world"){
+    const d = el("div",{class:"beat sysnote"}, "✦ you hold back — the world moves");
+    if(isLast && !busy){
+      const tools = el("div",{class:"beat-tools", style:"justify-content:center"});
+      tools.appendChild(el("button",{onclick:()=>deleteLast()},"✕ remove"));
+      d.appendChild(tools);
+    }
+    return d;
+  }
+  return el("div",{class:"beat sysnote"}, e.text||"");
+}
+function scrollLog(){ const lg = $("#log"); requestAnimationFrame(()=>{ lg.scrollTop = lg.scrollHeight; }); }
+function updateHeader(){ $("#storyTitleHead").textContent = S? S.title : ""; }
+
+/* ---------------- thinking / errors ---------------- */
+function setThinking(on, label){
+  $("#thinking").classList.toggle("on", !!on);
+  if(label) $("#thinkingLabel").textContent = label;
+  const dis = !!on || !!(S && S.pendingDice);
+  $("#btnSend").disabled = dis; $("#btnSend2").disabled = dis; $("#btnSpark").disabled = dis;
+}
+function shortModel(id){
+  const t = (id||"").split("/").pop().split(":")[0];
+  return t.length>18? t.slice(0,17)+"…" : (t||"model");
+}
+function updateSendButtons(){
+  if(!S) return;
+  const m1 = (S.config.models.roleplay||"").trim();
+  const m2 = (S.config.models.roleplay2||"").trim();
+  const b1 = $("#btnSend"), b2 = $("#btnSend2");
+  if(m2){
+    b1.textContent = "▶ 1 · " + shortModel(m1); b1.title = m1;
+    b2.style.display = ""; b2.textContent = "▶ 2 · " + shortModel(m2); b2.title = m2;
+  }else{
+    b1.textContent = "Continue ▶"; b1.title = m1;
+    b2.style.display = "none";
+  }
+}
+function showError(msg, retryFn){
+  $("#errMsg").textContent = msg;
+  $("#errBar").classList.add("on");
+  lastFailedSend = retryFn || null;
+  $("#btnRetry").style.display = retryFn? "" : "none";
+}
+function clearError(){ $("#errBar").classList.remove("on"); lastFailedSend = null; }
+$("#btnRetry").addEventListener("click", ()=>{ const f = lastFailedSend; clearError(); if(f) f(); });
+
+/* ---------------- game loop ---------------- */
+async function requestStory(){
+  if(busy) return;
+  const mkey = (S.config.lastRoleplay==="roleplay2" && (S.config.models.roleplay2||"").trim())? "roleplay2" : "roleplay";
+  const model = (S.config.models[mkey]||"").trim();
+  busy = true; clearError(); setThinking(true, `The story is being written… (${shortModel(model)})`);
+  try{
+    const raw = await orChat(model, buildMessages(), {temperature:Number(S.config.temperature)||0.9, maxTokens:4000, label:"story"});
+    handleStoryReply(raw);
+  }catch(e){
+    showError(e.message, ()=>requestStory());
+  }finally{
+    busy = false; setThinking(false); renderLog();
+  }
+}
+
+/* Accept the many shapes models invent for a dice request:
+   outcomes/ranges/options/table/results; {min,max,text} or {range:"1-5",outcome:"..."}
+   or {roll:"6-10",result:"..."}; en-dashes, stray characters inside ranges, etc. */
+function normalizeDice(d){
+  if(!d || typeof d !== "object") return null;
+  const reason = String(d.reason || d.why || d.prompt || d.description || d.for || "An uncertain outcome").trim();
+  let list = [d.outcomes, d.ranges, d.options, d.table, d.results, d.scenarios].find(x=>Array.isArray(x) && x.length);
+  if(!list) return null;
+  const parsed = list.map(o=>{
+    if(o==null || typeof o !== "object") return null;
+    let min = o.min, max = o.max;
+    const rangeStr = o.range ?? o.roll ?? o.rolls ?? o.values ?? o.on;
+    if((min==null || max==null) && rangeStr!=null){
+      const nums = String(rangeStr).match(/\d+/g); // survives "1-5", "17–20", even corrupted "1-iﬁ5"
+      if(nums && nums.length){ min = min ?? Number(nums[0]); max = max ?? Number(nums[nums.length-1]); }
+    }
+    if(min==null && max==null) return null;
+    if(min==null) min = max;
+    if(max==null) max = min;
+    const text = String(o.text || o.outcome || o.result || o.description || o.desc || o.event || "").trim();
+    return {min:Number(min), max:Number(max), text};
+  }).filter(Boolean);
+  const oc = sanitizeOutcomes(parsed);
+  return oc? {reason, outcomes:oc, hidden: !!(d.hidden || d.secret || d.private)} : null;
+}
+
+function handleStoryReply(raw){
+  const j = extractJSON(raw);
+  let narrative = "", dice = null;
+  if(j){
+    narrative = String(j.narrative ?? j.story ?? j.text ?? j.prose ?? "").trim();
+    dice = normalizeDice(j.dice) || (j.dice==null? normalizeDice(j) : null); // some models put ranges at top level
+  }else{
+    const t = raw.trim().replace(/^```(?:json)?\s*/i,"").replace(/```\s*$/,"").trim();
+    if(t.startsWith("{") && /"narrative"|"dice"|"outcomes"|"ranges"/.test(t)){
+      // it tried to send JSON but broke it — don't dump raw JSON into the story
+      showError("The storyteller sent malformed JSON. Retrying usually fixes it.", ()=>requestStory());
+      return;
+    }
+    narrative = raw.trim(); // model ignored JSON entirely — salvage as plain narrative
+  }
+  if(!narrative && !dice){ showError("The storyteller returned nothing usable.", ()=>requestStory()); return; }
+  S.feedback = null; // consumed
+  const entry = {t:"story", text: narrative || "…", dice: dice? {reason:dice.reason, outcomes:dice.outcomes, hidden:!!dice.hidden} : null};
+  S.log.push(entry);
+  if(dice){
+    // hidden or visible: the player always taps the die — but a hidden roll is blind
+    S.pendingDice = dice;
+    saveStory(); renderLog(); showDicePanel();
+  }else{
+    S.pendingDice = null;
+    saveStory(); renderLog(); hideDicePanel();
+    onSceneComplete();
+  }
+}
+
+function sanitizeOutcomes(list){
+  try{
+    const oc = list.map(o=>({min:Math.max(1,Math.min(20,Math.round(Number(o.min)))), max:Math.max(1,Math.min(20,Math.round(Number(o.max)))), text:String(o.text||"").trim()}))
+                   .filter(o=>o.text && !isNaN(o.min) && !isNaN(o.max))
+                   .map(o=> o.min>o.max? {min:o.max,max:o.min,text:o.text} : o)
+                   .sort((a,b)=>a.min-b.min);
+    if(!oc.length) return null;
+    // force full 1-20 coverage: stretch first/last, close gaps
+    oc[0].min = 1; oc[oc.length-1].max = 20;
+    for(let i=1;i<oc.length;i++){ if(oc[i].min > oc[i-1].max+1) oc[i].min = oc[i-1].max+1; if(oc[i].min <= oc[i-1].max) oc[i].min = Math.min(20, oc[i-1].max+1); if(oc[i].max < oc[i].min) oc[i].max = oc[i].min; }
+    return oc;
+  }catch(e){ return null; }
+}
+function pickOutcome(outcomes, v){
+  for(const o of outcomes) if(v>=o.min && v<=o.max) return o;
+  return outcomes[outcomes.length-1];
+}
+
+function sendTurn(which){
+  if(busy || !S) return;
+  if(S.pendingDice){ toast("Roll the die first"); return; }
+  if(!S.config.models.roleplay){ toast("Set a story model in Settings first"); switchTab("settings"); return; }
+  S.config.lastRoleplay = (which==="roleplay2" && (S.config.models.roleplay2||"").trim())? "roleplay2" : "roleplay";
+  const action = $("#inMain").value.trim();
+  const narration = $("#inNarration").value.trim();
+  const lore = $("#inLore").value.trim();
+  if(S.log.length && !(action||narration||lore)){
+    if(!confirm("Send an empty turn? The storyteller will simply continue.")) return;
+  }
+  if(S.log.length || action || narration || lore){
+    S.log.push({t:"player", action, narration, lore});
+  }
+  $("#inMain").value = ""; $("#inNarration").value = ""; $("#inLore").value = "";
+  saveStory(); renderLog();
+  requestStory();
+}
+$("#btnSend").addEventListener("click", ()=>sendTurn("roleplay"));
+$("#btnSend2").addEventListener("click", ()=>sendTurn("roleplay2"));
+function worldTurn(){
+  if(busy || !S) return;
+  if(S.pendingDice){ toast("Roll the die first"); return; }
+  if(!S.config.models.roleplay){ toast("Set a story model in Settings first"); switchTab("settings"); return; }
+  if(!S.log.length){ toast("Begin the story first"); return; }
+  // anything typed in the boxes rides along as context for the world's move
+  const narration = $("#inNarration").value.trim();
+  const lore = $("#inLore").value.trim();
+  $("#inNarration").value = ""; $("#inLore").value = "";
+  S.log.push({t:"world", narration, lore});
+  saveStory(); renderLog();
+  requestStory();
+}
+$("#btnSpark").addEventListener("click", worldTurn);
+
+/* ---------------- paint the scene ---------------- */
+let paintBusy = false;
+function visualCanonText(){
+  const own = (S.config.visualCanon||"").trim();
+  const chars = (S.memory.characters||[]).filter(c=>c.name && c.description).slice(0,10).map(c=>`- ${c.name}: ${c.description}`).join("\n");
+  const parts = [];
+  if(own) parts.push("VISUAL CANON — these appearances and places are fixed, keep them exactly consistent:\n"+own);
+  if(chars) parts.push("CHARACTER APPEARANCES (canonical):\n"+chars);
+  if(S.setup.protagonist) parts.push("PROTAGONIST: "+S.setup.protagonist);
+  return parts.join("\n\n");
+}
+async function paintScene(anchorIdx){
+  if(paintBusy || !S) return;
+  if(!S.log.some(e=>e.t==="story")){ toast("Nothing to paint yet"); return; }
+  const model = (S.config.models.image||"").trim();
+  if(!model){ toast("Set an image model in Settings → Scene painting"); switchTab("settings"); return; }
+  const upTo = (typeof anchorIdx==="number")? anchorIdx : S.log.length-1;
+  paintBusy = true;
+  const b = $("#btnPaint"); b.disabled = true; b.textContent = "🎨…";
+  $("#dockStatus").textContent = "painting the scene…";
+  try{
+    const beats = S.log.slice(0, upTo+1).filter(e=>e.t==="story").slice(-3).map(e=>e.text).join("\n\n").slice(-2600);
+    // Step 1: have a text model distill the scene into a paintable, policy-safe image prompt
+    // (raw scene text often trips image models' content filters → text refusal, no image)
+    let visual = null;
+    const tm = (S.config.models.memory || S.config.models.roleplay || "").trim();
+    if(tm){
+      try{
+        $("#dockStatus").textContent = "composing the picture…";
+        visual = (await orChat(tm, [
+          {role:"system", content:"You write prompts for an image-generation model. Output only the prompt text — no preamble, no quotes."},
+          {role:"user", content:`From the scene below, describe ONE striking visual moment as an image-generation prompt: 60–120 words covering subjects, poses, expressions, clothing, setting, lighting, mood, era-accurate detail — written like a real photograph or film still is being described (concrete physical detail, no artistic-medium words like painting/illustration/art). Use the canonical appearances below EXACTLY for anyone who appears. It must be acceptable to a mainstream image model: imply rather than depict anything explicit; no nudity, no graphic gore.\n\n${visualCanonText()}\n\nSCENE:\n${beats}`}
+        ], {temperature:0.6, maxTokens:400, label:"image prompt"})).trim().slice(0,1400);
+      }catch(e){ visual = null; }
+    }
+    // a refusal from the prompt-writer must not leak raw scene text onward
+    if(visual && /^(i(’|')?m sorry|i can(’|')?t|i cannot|i am unable|unable to|sorry[, ])/i.test(visual)) visual = null;
+    $("#dockStatus").textContent = "painting the scene…";
+    const canon = visualCanonText().slice(0, 700);
+    const header = `Create ONE image. No text, letters, captions, watermarks or UI in the image.\nVisual style: ${S.config.imageStyle||"photorealistic cinematic film still, shot on 35mm, natural available light, realistic skin and fabric textures, shallow depth of field, muted natural color grade — NOT illustration, NOT painting, NOT cartoon, NOT 3D render"}`;
+    const core = visual? "Show: "+visual.slice(0,900) : `Show the most striking moment of this scene:\n${beats.slice(-1100)}`;
+    // try progressively simpler prompts: full → without canon (shorter & tamer)
+    const candidates = [
+      `${header}\n${canon? "\n"+canon+"\n" : ""}\n${core}`.slice(0,1800),
+      `${header}\n\n${core}`.slice(0,1400)
+    ];
+    let dataUrl = null, lastErr = null, usedPrompt = candidates[0];
+    for(const p of candidates){
+      try{ usedPrompt = p; dataUrl = await orImage(model, p); break; }
+      catch(e){
+        lastErr = e;
+        if(!/400|provider returned|content|safety|moderat|no image/i.test(e.message)) throw e; // real errors (auth, network) surface immediately
+        $("#dockStatus").textContent = "provider refused — trying a simpler prompt…";
+      }
+    }
+    if(!dataUrl){
+      $("#dockStatus").textContent = "";
+      manualImageModal(usedPrompt, upTo, lastErr? lastErr.message : "unknown error");
+      return;
+    }
+    const id = uid();
+    await idbPut(id, dataUrl);
+    S.images = S.images||[];
+    S.images.push({id, afterIndex: upTo, prompt: usedPrompt, ts: Date.now()});
+    saveStory(); renderLog();
+    $("#dockStatus").textContent = "";
+  }catch(e){
+    $("#dockStatus").textContent = "";
+    showError("Painting failed: " + e.message, null);
+  }finally{
+    paintBusy = false; b.disabled = false; b.textContent = "🎨";
+  }
+}
+/* When every automatic attempt is refused, hand the player the exact prompt to edit */
+function manualImageModal(prompt, anchorIdx, errMsg){
+  const box = el("div",{});
+  box.appendChild(el("h2",{},"Painting refused"));
+  box.appendChild(el("p",{class:"hint"},`The provider rejected it (${errMsg}). Below is the exact prompt that was sent — soften or shorten it and try again. Content filters usually react to body descriptions, violence, or sheer length.`));
+  const ta = el("textarea",{style:"min-height:220px;font-size:13px"}); ta.value = prompt;
+  box.appendChild(ta);
+  const status = el("p",{class:"hint"},"");
+  box.appendChild(status);
+  const row = el("div",{class:"row",style:"margin-top:12px"});
+  const btn = el("button",{class:"btn primary",onclick:async ()=>{
+    btn.disabled = true; status.textContent = "painting…";
+    try{
+      const dataUrl = await orImage((S.config.models.image||"").trim(), ta.value.trim());
+      const id = uid();
+      await idbPut(id, dataUrl);
+      S.images = S.images||[];
+      S.images.push({id, afterIndex: anchorIdx, prompt: ta.value.trim(), ts: Date.now()});
+      saveStory(); closeModal(); renderLog();
+    }catch(e){ status.textContent = "Still refused: " + e.message; btn.disabled = false; }
+  }},"Try again ▶");
+  row.appendChild(btn);
+  row.appendChild(el("button",{class:"btn",onclick:closeModal},"Cancel"));
+  box.appendChild(row);
+  modal(box);
+}
+$("#btnPaint").addEventListener("click", ()=>paintScene());
+function redoImage(im){
+  if(paintBusy){ toast("Already painting"); return; }
+  const box = el("div",{});
+  box.appendChild(el("h2",{},"Redo image"));
+  box.appendChild(el("p",{class:"hint"},"Your feedback goes to the image model together with the current image as reference — faces, characters and setting stay consistent unless your feedback changes them."));
+  const ta = el("textarea",{style:"min-height:90px",placeholder:"e.g. darker room, she should look angrier, wider shot, more period-accurate clothes…"});
+  box.appendChild(ta);
+  const row = el("div",{class:"row",style:"margin-top:12px"});
+  row.appendChild(el("button",{class:"btn primary",onclick:async ()=>{
+    const fb = ta.value.trim();
+    if(!fb){ toast("Write some feedback first"); return; }
+    closeModal();
+    const model = (S.config.models.image||"").trim();
+    if(!model){ toast("Set an image model in Settings first"); return; }
+    paintBusy = true; $("#dockStatus").textContent = "repainting with your feedback…";
+    try{
+      const prev = await idbGet(im.id);
+      const base = im.prompt || `An image for this scene of the story (style: ${S.config.imageStyle||"photorealistic cinematic film still"}).`;
+      const prompt = base + `\n\nThe previous version of this image is attached as reference. REDO it applying this feedback: ${fb}\nKeep the characters' faces, bodies, clothing and the setting consistent with the reference unless the feedback says otherwise. No text or watermarks.`;
+      const dataUrl = await orImage(model, prompt, prev||undefined);
+      await idbPut(im.id, dataUrl);
+      im.ts = Date.now();
+      saveStory(); renderLog();
+      $("#dockStatus").textContent = "";
+    }catch(e){
+      $("#dockStatus").textContent = "";
+      showError("Redo failed: " + e.message, null);
+    }finally{ paintBusy = false; }
+  }},"Repaint ▶"));
+  row.appendChild(el("button",{class:"btn",onclick:closeModal},"Cancel"));
+  box.appendChild(row);
+  modal(box);
+}
+$("#btnTestImage").addEventListener("click", async ()=>{
+  const model = $("#setMImage").value.trim();
+  if(!model){ toast("Enter an image model first"); return; }
+  const b = $("#btnTestImage"); b.disabled = true; b.textContent = "…";
+  try{
+    const url = await orImage(model, "A photorealistic photograph of a single red apple on a rough wooden table, warm window light, 35mm, shallow depth of field.");
+    const box = el("div",{});
+    box.appendChild(el("h2",{},"Image model works ✓"));
+    const img = document.createElement("img"); img.src = url; img.style.maxWidth = "100%"; img.style.borderRadius = "10px";
+    box.appendChild(img);
+    box.appendChild(el("p",{class:"hint"},"The pipeline is fine. If story paintings still fail, the scene content is being refused — the engine now softens prompts automatically, but extreme scenes may need a tamer moment."));
+    const row = el("div",{class:"row",style:"margin-top:12px"}); row.appendChild(el("button",{class:"btn",onclick:closeModal},"Close"));
+    box.appendChild(row); modal(box);
+  }catch(e){
+    const box = el("div",{});
+    box.appendChild(el("h2",{},"Image model failed"));
+    box.appendChild(el("p",{class:"hint",style:"white-space:pre-wrap"}, e.message));
+    const row = el("div",{class:"row",style:"margin-top:12px"}); row.appendChild(el("button",{class:"btn",onclick:closeModal},"Close"));
+    box.appendChild(row); modal(box);
+  }finally{ b.disabled = false; b.textContent = "Test"; }
+});
+
+/* ---------------- narration (TTS) ---------------- */
+let currentAudio = null, browserSpeaking = false;
+function stopNarration(){
+  try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){}
+  if(currentAudio){ try{ currentAudio.pause(); }catch(e){} currentAudio = null; }
+  browserSpeaking = false;
+  $("#btnNarrate").textContent = "🔊";
+}
+async function narrateLast(){
+  if(!S) return;
+  if(browserSpeaking || currentAudio){ stopNarration(); return; }
+  const last = [...S.log].reverse().find(e=>e.t==="story");
+  if(!last){ toast("Nothing to narrate yet"); return; }
+  return narrateText(last.text);
+}
+async function narrateText(text){
+  if(!S) return;
+  if(browserSpeaking || currentAudio) stopNarration(); // stop old, then play the new one
+  const cfg = S.config.tts || {provider:"browser"};
+  const b = $("#btnNarrate");
+  try{
+    if(cfg.provider==="elevenlabs" || cfg.provider==="openai"){
+      const key = lsGet("povengine.ttskey","").trim();
+      if(!key){ toast("Add your TTS API key in Settings → narration"); switchTab("settings"); return; }
+      b.textContent = "🔊…"; $("#dockStatus").textContent = "generating narration…";
+      let res;
+      if(cfg.provider==="elevenlabs"){
+        const voice = (cfg.voice||"21m00Tcm4TlvDq8ikWAM").trim();
+        res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voice)}`, {
+          method:"POST", headers:{"xi-api-key":key, "Content-Type":"application/json"},
+          body: JSON.stringify({text, model_id:"eleven_multilingual_v2"})
+        });
+      }else{
+        res = await fetch("https://api.openai.com/v1/audio/speech", {
+          method:"POST", headers:{"Authorization":"Bearer "+key, "Content-Type":"application/json"},
+          body: JSON.stringify({model:"gpt-4o-mini-tts", voice:(cfg.voice||"onyx").trim(), input:text, speed:Number(cfg.rate)||1})
+        });
+      }
+      if(!res.ok){ let d=""; try{d=(await res.text()).slice(0,200);}catch(e){} throw new Error(`TTS ${res.status}: ${d}`); }
+      const blob = await res.blob();
+      currentAudio = new Audio(URL.createObjectURL(blob));
+      currentAudio.onended = ()=>stopNarration();
+      $("#dockStatus").textContent = "";
+      b.textContent = "⏹";
+      await currentAudio.play();
+    }else{
+      if(!window.speechSynthesis){ toast("This browser has no built-in voices — pick ElevenLabs or OpenAI in Settings"); return; }
+      const u = new SpeechSynthesisUtterance(text);
+      const want = (cfg.voice||"").toLowerCase().trim();
+      if(want){
+        const v = speechSynthesis.getVoices().find(v=>v.name.toLowerCase().includes(want));
+        if(v) u.voice = v;
+      }
+      u.rate = Math.max(.5, Math.min(2, Number(cfg.rate)||1));
+      u.onend = ()=>stopNarration();
+      u.onerror = ()=>stopNarration();
+      browserSpeaking = true;
+      b.textContent = "⏹";
+      speechSynthesis.speak(u);
+    }
+  }catch(e){
+    stopNarration(); $("#dockStatus").textContent = "";
+    toast("Narration failed: " + e.message);
+  }
+}
+$("#btnNarrate").addEventListener("click", narrateLast);
+$("#inMain").addEventListener("keydown", e=>{ if((e.ctrlKey||e.metaKey) && e.key==="Enter") sendTurn(S.config.lastRoleplay||"roleplay"); });
+$("#btnSubToggle").addEventListener("click", ()=>{
+  const sb = $("#subBoxes"); sb.classList.toggle("hidden");
+  $("#btnSubToggle").textContent = (sb.classList.contains("hidden")? "▸" : "▾") + " narration & scene lore (optional)";
+});
+
+/* ---------------- editing history & derived-data invalidation ----------------
+   Memory and the novel are DERIVED from the log. Whenever the log changes at
+   index i (edit, removal, rewind, regenerate), everything derived from log
+   entries >= i is invalid: memory rolls back to the nearest snapshot taken at
+   or before i and re-extracts; affected novel chapters are re-written in full
+   from the raw transcript. */
+function cloneMemLists(){
+  return JSON.parse(JSON.stringify({characters:S.memory.characters, locations:S.memory.locations, events:S.memory.events, conversations:S.memory.conversations}));
+}
+function invalidateFrom(i){
+  // --- memory: roll back to nearest snapshot covering only log[0..i) ---
+  if(S.memCursor > i){
+    const snaps = (S.memSnaps||[]).filter(s=>s.cursor<=i).sort((a,b)=>a.cursor-b.cursor);
+    const snap = snaps[snaps.length-1] || null;
+    const notes = S.memory.notes; // user-owned, never rolled back
+    if(snap){
+      const m = JSON.parse(JSON.stringify(snap.memory));
+      S.memory = {characters:m.characters||[], locations:m.locations||[], events:m.events||[], conversations:m.conversations||[], notes};
+      S.memCursor = snap.cursor;
+    }else{
+      S.memory = {characters:[], locations:[], events:[], conversations:[], notes};
+      S.memCursor = 0;
+    }
+    S.memSnaps = (S.memSnaps||[]).filter(s=>s.cursor <= S.memCursor);
+    setMemStatus("memory rolled back — re-reading the story…");
+  }
+  // --- novel chapters ---
+  ensureChapters();
+  S.novelChapters = S.novelChapters.filter(ch => ch.from < Math.max(1, S.log.length) || ch.from===0);
+  for(const ch of S.novelChapters){
+    if(ch.to!=null && ch.to > S.log.length) ch.to = null;      // reopen truncated chapter
+    if(ch.upTo > i || ch.upTo > S.log.length){ ch.stale = true; }
+  }
+  if(S.novelChapters.length){
+    const last = S.novelChapters[S.novelChapters.length-1];
+    if(last.to!=null && last.to >= S.log.length) last.to = null; // keep an open chapter at the tail
+  }
+  // drop paintings anchored to removed beats
+  S.images = (S.images||[]).filter(im=>im.afterIndex < S.log.length);
+  saveStory();
+  scheduleDerived();
+}
+let derivedTimer = null;
+function scheduleDerived(){
+  clearTimeout(derivedTimer);
+  derivedTimer = setTimeout(()=>{ if(S && !busy && !S.pendingDice){ updateMemory(); updateNovel(); } }, 2500);
+}
+
+function regenerateLast(){
+  if(busy) return;
+  for(let i=S.log.length-1;i>=0;i--){
+    if(S.log[i].t==="story"){ S.log.splice(i); invalidateFrom(i); break; }
+  }
+  S.pendingDice = null; hideDicePanel();
+  saveStory(); renderLog(); requestStory();
+}
+function deleteLast(){
+  if(busy || !S.log.length) return;
+  S.log.pop();
+  S.pendingDice = null; hideDicePanel();
+  invalidateFrom(S.log.length);
+  saveStory(); renderLog();
+}
+function rewindTo(i){
+  if(busy) return;
+  const removed = S.log.length - (i+1);
+  if(!confirm(`Rewind the story to this point? This removes the ${removed} entr${removed===1?"y":"ies"} after it. Memory and the novel will be updated to match.`)) return;
+  S.log.splice(i+1);
+  S.pendingDice = null; hideDicePanel();
+  invalidateFrom(i+1);
+  saveStory(); renderLog();
+  toast("Story rewound — continue from here");
+}
+function editEntry(i){
+  if(busy) return;
+  const e = S.log[i];
+  const box = el("div",{});
+  box.appendChild(el("h2",{}, e.t==="story"? "Edit story text" : "Edit your turn"));
+  let fields = {};
+  if(e.t==="story"){
+    fields.text = el("textarea",{style:"min-height:40vh;font-family:var(--serif);font-size:15px"});
+    fields.text.value = e.text;
+    box.appendChild(fields.text);
+  }else{
+    for(const [k,label] of [["action","Action / dialogue / decision"],["narration","Complementary narration"],["lore","Scene lore"]]){
+      box.appendChild(el("label",{class:"f"},label));
+      fields[k] = el("textarea",{}); fields[k].value = e[k]||"";
+      box.appendChild(fields[k]);
+    }
+  }
+  box.appendChild(el("p",{class:"hint"},"Editing rewrites canon: memory and the novel will be updated to match."));
+  const row = el("div",{class:"row",style:"margin-top:12px"});
+  row.appendChild(el("button",{class:"btn primary",onclick:()=>{
+    if(e.t==="story"){ e.text = fields.text.value; }
+    else{ e.action = fields.action.value.trim(); e.narration = fields.narration.value.trim(); e.lore = fields.lore.value.trim(); }
+    closeModal(); invalidateFrom(i); saveStory(); renderLog(); toast("Entry updated");
+  }},"Save"));
+  row.appendChild(el("button",{class:"btn",onclick:closeModal},"Cancel"));
+  box.appendChild(row);
+  modal(box);
+}
+function feedbackLast(){
+  if(busy) return;
+  let idx = -1;
+  for(let i=S.log.length-1;i>=0;i--){ if(S.log[i].t==="story"){ idx=i; break; } }
+  if(idx===-1) return;
+  const box = el("div",{});
+  box.appendChild(el("h2",{},"Feedback → rewrite"));
+  box.appendChild(el("p",{class:"hint"},"Tell the storyteller what was wrong with this part — “more descriptive”, “this makes no sense because…”, “too rushed”. It will be rewritten with your feedback applied."));
+  const ta = el("textarea",{style:"min-height:100px",placeholder:"Your feedback…"});
+  box.appendChild(ta);
+  const row = el("div",{class:"row",style:"margin-top:12px"});
+  row.appendChild(el("button",{class:"btn primary",onclick:()=>{
+    const note = ta.value.trim();
+    if(!note){ toast("Write some feedback first"); return; }
+    const prev = S.log[idx].text;
+    S.log.splice(idx);
+    S.pendingDice = null; hideDicePanel();
+    invalidateFrom(idx);
+    S.feedback = {prev, note};
+    closeModal(); saveStory(); renderLog(); requestStory();
+  }},"Rewrite ▶"));
+  row.appendChild(el("button",{class:"btn",onclick:closeModal},"Cancel"));
+  box.appendChild(row);
+  modal(box);
+}
+
+/* ---------------- dice ---------------- */
+let rolling = false;
+function showDicePanel(){
+  const d = S.pendingDice; if(!d) return;
+  $("#dicePanel").classList.add("on");
+  $("#dicePanel").classList.toggle("hiddenroll", !!d.hidden);
+  $("#diceReason").textContent = d.hidden? (d.reason || "fate stirs — something unseen is decided") : d.reason;
+  $("#diceReason").title = d.hidden? "a hidden roll — you will not see the outcome" : d.reason;
+  $("#rollLabel").textContent = d.hidden? "a hidden roll — tap the die blind" : "tap the die to roll";
+  $("#d20num").textContent = "?";
+  const box = $("#diceOutcomes"); box.classList.remove("open"); box.innerHTML = "";
+  if(!d.hidden){
+    d.outcomes.forEach(o=>{
+      box.appendChild(el("div",{class:"oc"},
+        el("div",{class:"rng"}, o.min===o.max? String(o.min) : o.min+"–"+o.max),
+        el("div",{}, o.text)));
+    });
+  }
+  $("#toggleOutcomes").textContent = "+";
+  $("#inputBoxes").style.opacity = ".6";
+  $("#inMain").disabled = $("#inNarration").disabled = $("#inLore").disabled = true;
+  $("#btnSend").disabled = true; $("#btnSend2").disabled = true; $("#btnSpark").disabled = true;
+  scrollLog();
+}
+function hideDicePanel(){
+  $("#dicePanel").classList.remove("on");
+  $("#dicePanel").classList.remove("hiddenroll");
+  $("#inputBoxes").style.opacity = "1";
+  $("#inMain").disabled = $("#inNarration").disabled = $("#inLore").disabled = false;
+  $("#btnSend").disabled = busy; $("#btnSend2").disabled = busy; $("#btnSpark").disabled = busy;
+}
+$("#toggleOutcomes").addEventListener("click", ()=>{
+  const box = $("#diceOutcomes"); box.classList.toggle("open");
+  $("#toggleOutcomes").textContent = box.classList.contains("open")? "−" : "+";
+});
+$("#d20").addEventListener("click", ()=>{
+  if(rolling || !S || !S.pendingDice) return;
+  rolling = true;
+  const wrap = $("#d20"); wrap.classList.add("rolling");
+  $("#rollLabel").textContent = "rolling…";
+  const numEl = $("#d20num");
+  const spin = setInterval(()=>{ numEl.textContent = 1+Math.floor(Math.random()*20); }, 70);
+  setTimeout(()=>{
+    clearInterval(spin);
+    wrap.classList.remove("rolling"); wrap.classList.add("landed");
+    setTimeout(()=>wrap.classList.remove("landed"), 400);
+    const buf = new Uint32Array(1);
+    (window.crypto||{getRandomValues:a=>{a[0]=Math.floor(Math.random()*0xffffffff)}}).getRandomValues(buf);
+    const v = (buf[0] % 20) + 1;
+    numEl.textContent = (S.pendingDice && S.pendingDice.hidden)? "?" : v; // blind roll never shows the number
+    applyRoll(v);
+  }, 1100);
+});
+function applyRoll(v){
+  const d = S.pendingDice;
+  const o = pickOutcome(d.outcomes, v);
+  if(d.hidden){
+    $("#rollLabel").textContent = "the die is cast — fate keeps its secret";
+    S.log.push({t:"dice", hidden:true, revealed:false, value:v, reason:d.reason, outcomes:d.outcomes, outcomeText:o.text});
+  }else{
+    $("#rollLabel").textContent = `you rolled ${v}`;
+    // highlight in outcome table
+    $$("#diceOutcomes .oc").forEach((n,i)=>n.classList.toggle("hit", d.outcomes[i]===o));
+    $("#diceOutcomes").classList.add("open"); $("#toggleOutcomes").textContent = "−";
+    S.log.push({t:"dice", value:v, reason:d.reason, outcomes:d.outcomes, outcomeText:o.text});
+  }
+  S.pendingDice = null;
+  saveStory(); renderLog();
+  setTimeout(()=>{
+    rolling = false;
+    hideDicePanel();
+    requestStory(); // continue the story with the dice result
+  }, d.hidden? 1000 : 1400);
+}
+
+/* ---------------- scene completion → memory + novel ---------------- */
+function onSceneComplete(){
+  updateMemory();
+  updateNovel();
+}
+
+function rawSceneText(from, to){
+  const lines = [];
+  for(const e of S.log.slice(from, to)){
+    if(e.t==="story") lines.push("STORYTELLER:\n" + e.text);
+    else if(e.t==="player") lines.push("PROTAGONIST (the player):\n" + (playerEntryText(e)||"(continues)"));
+    else if(e.t==="world") lines.push("PROTAGONIST: (holds back — says and does nothing this beat)" + (e.narration? "\nSIDE NARRATION: "+e.narration : ""));
+    else if(e.t==="dice"){ if(!e.hidden) lines.push(`DICE ROLL (${e.reason}): rolled ${e.value} → ${e.outcomeText}`); } // hidden rolls never leak into novel/memory extraction
+  }
+  return lines.join("\n\n");
+}
+
+let memBusy = false;
+const MEM_CHUNK = 14;
+async function updateMemory(){
+  if(memBusy || !S) return;
+  if(!S.config.models.memory){ setMemStatus("no memory model set"); return; }
+  if(S.memCursor >= S.log.length) return;
+  memBusy = true;
+  try{
+    while(S && S.memCursor < S.log.length){
+      const from = S.memCursor, to = Math.min(S.log.length, from + MEM_CHUNK);
+      setMemStatus(`memory keeper is reading… (${to}/${S.log.length})`);
+      const sys = fillTemplate(S.prompts.memory);
+      const user = "CURRENT MEMORY:\n" + JSON.stringify({characters:S.memory.characters, locations:S.memory.locations, events:S.memory.events, conversations:S.memory.conversations}, null, 1)
+        + "\n\nLATEST SCENE:\n" + rawSceneText(from, to)
+        + "\n\nReturn the complete updated memory JSON now.";
+      const raw = await orChat(S.config.models.memory, [{role:"system",content:sys},{role:"user",content:user}], {temperature:0.2, maxTokens:4000, label:"memory"});
+      const j = extractJSON(raw);
+      if(!(j && Array.isArray(j.characters))){ setMemStatus("memory keeper returned invalid JSON — will retry next scene"); break; }
+      // snapshot the PRE-update state so history edits can roll back cleanly
+      S.memSnaps = (S.memSnaps||[]).filter(s=>s.cursor!==from);
+      S.memSnaps.push({cursor: from, memory: cloneMemLists()});
+      if(S.memSnaps.length > 15) S.memSnaps = S.memSnaps.slice(-15);
+      S.memory.characters = j.characters.map(c=>({name:String(c.name||""),description:String(c.description||""),relationship:String(c.relationship||""),story:String(c.story||"")}));
+      S.memory.locations = (j.locations||[]).map(l=>({name:String(l.name||""),description:String(l.description||"")}));
+      S.memory.events = (j.events||[]).map(e=>({title:String(e.title||""),summary:String(e.summary||"")}));
+      S.memory.conversations = (j.conversations||[]).map(c=>({participants:String(c.participants||""),summary:String(c.summary||"")}));
+      S.memCursor = to;
+      saveStory(); setMemStatus("memory updated ✓");
+      if($("#view-memory").classList.contains("active")) renderMemory();
+    }
+  }catch(e){
+    setMemStatus("memory update failed: " + e.message);
+  }finally{
+    memBusy = false;
+  }
+}
+function setMemStatus(s){ $("#memStatus").textContent = s; $("#dockStatus").textContent = s.startsWith("memory update failed")? "⚠ "+s : ""; }
+$("#btnUpdateMem").addEventListener("click", ()=>{ if(!S) return; if(S.memCursor>=S.log.length){ toast("Memory already covers the whole story"); return; } updateMemory(); });
+
+/* ---------------- novel chapter engine ----------------
+   The novel is a list of chapters, each covering a range of log entries.
+   A chapter's prose is ALWAYS regenerated from the complete raw transcript
+   of its range — never appended from fragments — so it can never drift from
+   the story, and history edits simply mark chapters stale for rewriting. */
+let novelBusy = false;
+const CHAPTER_WORD_TARGET = 4200; // raw-transcript words before a chapter auto-closes
+function newChapter(from){ return {id:uid(), title:"", from, to:null, upTo:from, prose:"", stale:false, feedback:null}; }
+function ensureChapters(){
+  if(!Array.isArray(S.novelChapters)) S.novelChapters = [];
+  S.novelChapters = S.novelChapters.filter(ch => ch.from===0 || ch.from < S.log.length);
+  const last = S.novelChapters[S.novelChapters.length-1];
+  if(!last){ if(S.log.length) S.novelChapters.push(newChapter(0)); }
+  else if(last.to!=null && S.log.length > last.to){ S.novelChapters.push(newChapter(last.to)); }
+}
+function chapterEnd(ch){ return ch.to==null? S.log.length : Math.min(ch.to, S.log.length); }
+function chapterNeedingWork(){
+  ensureChapters();
+  for(const ch of S.novelChapters){
+    const end = chapterEnd(ch);
+    if(end > ch.from && (ch.stale || ch.upTo < end)) return ch;
+  }
+  return null;
+}
+function wordCount(s){ return (s.match(/\S+/g)||[]).length; }
+async function updateNovel(){
+  if(novelBusy || !S) return;
+  if(!S.config.models.novel){ $("#novelStatus").textContent = "No novelist model set (Settings)."; return; }
+  let ch = chapterNeedingWork();
+  if(!ch){ if($("#view-novel").classList.contains("active")) renderNovel(); return; }
+  novelBusy = true;
+  let ok = false;
+  const idx = S.novelChapters.indexOf(ch);
+  $("#novelStatus").textContent = `The novelist is writing chapter ${idx+1}…`;
+  try{
+    const end = chapterEnd(ch);
+    const prev = idx>0? S.novelChapters[idx-1] : null;
+    const sys = fillTemplate(S.prompts.novel);
+    const parts = [];
+    parts.push(prev && prev.prose? "ENDING OF THE PREVIOUS CHAPTER (context only — do not repeat any of it):\n…" + prev.prose.slice(-1200) : "(This is Chapter 1 — the very beginning of the novel.)");
+    parts.push(`You are writing CHAPTER ${idx+1} of the novel. Novelize the COMPLETE transcript below — every event, action, decision, line of dialogue and dice outcome, in order, changing nothing.`);
+    parts.push("RAW TRANSCRIPT OF THIS CHAPTER:\n" + rawSceneText(ch.from, end));
+    if(ch.feedback) parts.push("PLAYER FEEDBACK on your previous rendition of this chapter — apply it (without breaking transcript fidelity):\n" + ch.feedback);
+    parts.push('Remember the output format: first line "TITLE: <short chapter title>", blank line, then the full chapter prose.');
+    const raw = await orChat(S.config.models.novel, [{role:"system",content:sys},{role:"user",content:parts.join("\n\n")}], {temperature:0.7, maxTokens:8000, label:"novel"});
+    let text = raw.trim().replace(/^```[a-z]*\s*/i,"").replace(/```\s*$/,"").trim();
+    const m = text.match(/^TITLE:\s*(.+?)\s*\n+([\s\S]*)$/);
+    if(m){ ch.title = m[1].trim(); text = m[2].trim(); }
+    ch.prose = text;
+    ch.upTo = end;
+    ch.stale = false;
+    ch.feedback = null;
+    // auto chapter break once this one has grown long enough
+    if(ch.to==null && wordCount(rawSceneText(ch.from, end)) >= CHAPTER_WORD_TARGET && end < S.log.length + 1){ ch.to = end; }
+    saveStory();
+    ok = true;
+    $("#novelStatus").textContent = "Novel updated ✓";
+    if($("#view-novel").classList.contains("active")) renderNovel();
+  }catch(e){
+    $("#novelStatus").textContent = "Novelization failed: " + e.message;
+  }finally{
+    novelBusy = false;
+    if(ok && chapterNeedingWork()) updateNovel(); // continue with next pending chapter
+  }
+}
+function fullNovelText(){
+  ensureChapters();
+  return S.novelChapters.filter(ch=>ch.prose).map((ch,i)=>`CHAPTER ${i+1}${ch.title? " — "+ch.title : ""}\n\n${ch.prose}`).join("\n\n\n");
+}
+
+/* ---------------- memory panel ---------------- */
+const MEM_FIELDS = {
+  characters: [["name","Name"],["description","Description"],["relationship","Relationship to me"],["story","Their story so far"]],
+  locations: [["name","Name"],["description","Description"]],
+  events: [["title","Title"],["summary","What happened"]],
+  conversations: [["participants","Participants"],["summary","Summary"]]
+};
+const MEM_CONTAINERS = {characters:"#memChars", locations:"#memLocs", events:"#memEvents", conversations:"#memConvos"};
+function renderMemory(){
+  if(!S) return;
+  for(const [kind, sel] of Object.entries(MEM_CONTAINERS)){
+    const box = $(sel); box.innerHTML = "";
+    S.memory[kind].forEach((item, idx)=>{
+      const card = el("div",{class:"memItem"});
+      const head = el("div",{class:"mhead"});
+      head.appendChild(el("div",{class:"mname"}, item.name||item.title||item.participants||"(unnamed)"));
+      head.appendChild(el("button",{class:"mdel", title:"delete", onclick:()=>{ S.memory[kind].splice(idx,1); saveStory(); renderMemory(); }},"✕"));
+      card.appendChild(head);
+      for(const [field,label] of MEM_FIELDS[kind]){
+        const isLong = field!=="name" && field!=="title" && field!=="participants";
+        let inp;
+        if(isLong){ inp = document.createElement("textarea"); }
+        else { inp = document.createElement("input"); inp.type="text"; }
+        inp.value = item[field]||"";
+        inp.placeholder = label;
+        inp.addEventListener("change", ()=>{ item[field] = inp.value; saveStory(); });
+        card.appendChild(inp);
+      }
+      box.appendChild(card);
+    });
+  }
+  $("#memNotes").value = S.memory.notes||"";
+}
+$$("button[data-addmem]").forEach(b=>b.addEventListener("click", ()=>{
+  const kind = b.dataset.addmem;
+  const blank = {}; MEM_FIELDS[kind].forEach(([f])=>blank[f]="");
+  S.memory[kind].push(blank); saveStory(); renderMemory();
+}));
+$("#memNotes").addEventListener("change", ()=>{ S.memory.notes = $("#memNotes").value; saveStory(); });
+
+/* ---------------- novel panel ---------------- */
+function renderNovel(){
+  if(!S) return;
+  ensureChapters();
+  const box = $("#novelChapters"); box.innerHTML = "";
+  S.novelChapters.forEach((ch, i)=>{
+    const c = el("div",{class:"chapter" + (ch.stale? " stale":"")});
+    const head = el("div",{class:"chead"});
+    head.appendChild(el("div",{class:"cnum"},"Chapter "+(i+1)));
+    if(ch.title) head.appendChild(el("div",{class:"ctitle"}, ch.title));
+    c.appendChild(head);
+    if(ch.stale && ch.prose) c.appendChild(el("div",{class:"cstale"},"the story changed — this chapter will be re-written"));
+    const prose = el("div",{class:"cprose"}, ch.prose||"");
+    c.appendChild(prose);
+    const tools = el("div",{class:"ctools"});
+    tools.appendChild(el("button",{class:"btn small",onclick:()=>chapterFeedback(ch)},"↻ rewrite"));
+    tools.appendChild(el("button",{class:"btn small",onclick:()=>chapterEdit(ch, i)},"✎ edit"));
+    c.appendChild(tools);
+    box.appendChild(c);
+  });
+  const pendingCh = chapterNeedingWork();
+  if(!novelBusy) $("#novelStatus").textContent = pendingCh? "Parts of the story are not novelized yet — they'll be written after the next scene, or press Rebuild all." : (S.novelChapters.some(c=>c.prose)? "Up to date ✓" : "");
+}
+function chapterFeedback(ch){
+  if(novelBusy){ toast("The novelist is already writing"); return; }
+  const box = el("div",{});
+  box.appendChild(el("h2",{},"Rewrite chapter"));
+  box.appendChild(el("p",{class:"hint"},"Optional feedback for the novelist — “more descriptive”, “less flowery”, “dialogue feels stiff”. Leave empty to simply re-write it from the story."));
+  const ta = el("textarea",{style:"min-height:90px",placeholder:"Feedback (optional)…"});
+  box.appendChild(ta);
+  const row = el("div",{class:"row",style:"margin-top:12px"});
+  row.appendChild(el("button",{class:"btn primary",onclick:()=>{
+    ch.feedback = ta.value.trim() || null;
+    ch.stale = true;
+    closeModal(); saveStory(); renderNovel(); updateNovel();
+  }},"Rewrite ▶"));
+  row.appendChild(el("button",{class:"btn",onclick:closeModal},"Cancel"));
+  box.appendChild(row);
+  modal(box);
+}
+function chapterEdit(ch, i){
+  const box = el("div",{});
+  box.appendChild(el("h2",{},"Edit chapter "+(i+1)));
+  box.appendChild(el("label",{class:"f"},"Title"));
+  const ti = el("input",{type:"text"}); ti.value = ch.title||""; box.appendChild(ti);
+  box.appendChild(el("label",{class:"f"},"Prose"));
+  const ta = el("textarea",{class:"cedit",style:"min-height:45vh;font-family:var(--serif)"});
+  ta.value = ch.prose||""; box.appendChild(ta);
+  const row = el("div",{class:"row",style:"margin-top:12px"});
+  row.appendChild(el("button",{class:"btn primary",onclick:()=>{
+    ch.title = ti.value.trim(); ch.prose = ta.value; ch.stale = false;
+    closeModal(); saveStory(); renderNovel(); toast("Chapter saved");
+  }},"Save"));
+  row.appendChild(el("button",{class:"btn",onclick:closeModal},"Cancel"));
+  box.appendChild(row);
+  modal(box);
+}
+$("#btnNewChapter").addEventListener("click", ()=>{
+  ensureChapters();
+  const last = S.novelChapters[S.novelChapters.length-1];
+  if(!last || last.to!=null || S.log.length<=last.from){ toast("No open chapter to close yet"); return; }
+  last.to = S.log.length;
+  saveStory(); renderNovel(); toast("Chapter closed — the next scene starts chapter "+(S.novelChapters.length+1));
+});
+$("#btnRebuildNovel").addEventListener("click", ()=>{
+  if(!confirm("Re-novelize every chapter from the raw story? Manual edits to chapter prose will be overwritten.")) return;
+  ensureChapters();
+  S.novelChapters.forEach(ch=>{ ch.stale = true; });
+  saveStory(); renderNovel(); updateNovel();
+});
+$("#btnCopyNovel").addEventListener("click", async ()=>{
+  try{ await navigator.clipboard.writeText(fullNovelText()); toast("Novel copied to clipboard"); }
+  catch(e){ toast("Copy failed — select the text manually"); }
+});
+$("#btnDownloadNovel").addEventListener("click", ()=>{
+  downloadText((S.title||"novel")+".txt", fullNovelText());
+});
+
+function downloadText(name, text, mime){
+  const blob = new Blob([text], {type: mime||"text/plain;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+/* ---------------- settings ---------------- */
+const SETTINGS_BINDINGS = [
+  ["#setTitle", ()=>S.title, v=>{S.title=v; updateHeader();}],
+  ["#setProtagonist", ()=>S.setup.protagonist, v=>S.setup.protagonist=v],
+  ["#setLore", ()=>S.setup.lore, v=>S.setup.lore=v],
+  ["#setStyle", ()=>S.setup.style, v=>S.setup.style=v],
+  ["#setGuidelines", ()=>S.setup.guidelines, v=>S.setup.guidelines=v],
+  ["#setLanguage", ()=>S.config.language, v=>S.config.language=v],
+  ["#setMRoleplay", ()=>S.config.models.roleplay, v=>S.config.models.roleplay=v.trim()],
+  ["#setMRoleplay2", ()=>S.config.models.roleplay2, v=>S.config.models.roleplay2=v.trim()],
+  ["#setDiceBias", ()=>S.config.diceBias||"high", v=>S.config.diceBias=v],
+  ["#setMImage", ()=>S.config.models.image, v=>S.config.models.image=v.trim()],
+  ["#setImgStyle", ()=>S.config.imageStyle, v=>S.config.imageStyle=v],
+  ["#setVisualCanon", ()=>S.config.visualCanon||"", v=>S.config.visualCanon=v],
+  ["#setTtsProvider", ()=>(S.config.tts&&S.config.tts.provider)||"browser", v=>{S.config.tts=S.config.tts||{}; S.config.tts.provider=v;}],
+  ["#setTtsVoice", ()=>(S.config.tts&&S.config.tts.voice)||"", v=>{S.config.tts=S.config.tts||{}; S.config.tts.voice=v.trim();}],
+  ["#setTtsRate", ()=>(S.config.tts&&S.config.tts.rate)||1, v=>{S.config.tts=S.config.tts||{}; S.config.tts.rate=Math.max(.5,Math.min(2,Number(v)||1));}],
+  ["#setMMemory", ()=>S.config.models.memory, v=>S.config.models.memory=v.trim()],
+  ["#setMNovel", ()=>S.config.models.novel, v=>S.config.models.novel=v.trim()],
+  ["#setWindow", ()=>S.config.window, v=>S.config.window=Math.max(2,Math.min(60,Number(v)||16))],
+  ["#setTemp", ()=>S.config.temperature, v=>S.config.temperature=Math.max(0,Math.min(2,Number(v)||0.9))],
+  ["#setPromptRoleplay", ()=>S.prompts.roleplay, v=>S.prompts.roleplay=v],
+  ["#setPromptMemory", ()=>S.prompts.memory, v=>S.prompts.memory=v],
+  ["#setPromptNovel", ()=>S.prompts.novel, v=>S.prompts.novel=v],
+];
+function renderSettings(){
+  if(!S) return;
+  for(const [sel,get] of SETTINGS_BINDINGS) $(sel).value = get() ?? "";
+}
+SETTINGS_BINDINGS.forEach(([sel,,set])=>{
+  $(sel).addEventListener("change", ()=>{ if(!S) return; set($(sel).value); saveStory(); updateSendButtons(); toast("Saved"); });
+});
+$("#btnResetPrompts").addEventListener("click", ()=>{
+  if(!confirm("Reset all three prompt templates to defaults?")) return;
+  S.prompts = {roleplay:DEFAULT_PROMPTS.roleplay, memory:DEFAULT_PROMPTS.memory, novel:DEFAULT_PROMPTS.novel};
+  saveStory(); renderSettings(); toast("Templates reset");
+});
+$("#btnExportSave").addEventListener("click", ()=>{
+  const clean = JSON.parse(JSON.stringify(S)); // never contains the API key
+  downloadText((S.title||"story").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_") + ".povstory.json", JSON.stringify(clean, null, 1), "application/json");
+  toast("Save file exported");
+});
+$("#btnDeleteStory").addEventListener("click", ()=>{
+  if(!confirm(`Delete "${S.title}" permanently from this browser? Export a save file first if you want a backup.`)) return;
+  deleteStory(S.id); S = null; updateHeader();
+  switchTab("library");
+});
+
+/* ---------------- library ---------------- */
+function renderLibrary(){
+  const list = $("#slotList"); list.innerHTML = "";
+  const ix = getIndex();
+  if(!ix.length){ list.appendChild(el("p",{class:"hint"},"No stories yet — create your first one below.")); }
+  ix.forEach(entry=>{
+    const st = loadStory(entry.id);
+    const slot = el("div",{class:"slot", onclick:()=>{ openStory(entry.id); }});
+    slot.appendChild(el("div",{class:"sname"}, entry.title||"Untitled"));
+    slot.appendChild(el("div",{class:"smeta"}, `${entry.beats||0} scenes · ${new Date(entry.updated).toLocaleString()}`));
+    const ex = el("button",{class:"btn small", title:"Export save", onclick:(ev)=>{ ev.stopPropagation(); if(st) downloadText((st.title||"story").replace(/[^\w\- ]+/g,"").trim().replace(/\s+/g,"_")+".povstory.json", JSON.stringify(st,null,1), "application/json"); }},"⬇");
+    const del = el("button",{class:"btn small danger", title:"Delete", onclick:(ev)=>{ ev.stopPropagation(); if(confirm(`Delete "${entry.title}"?`)){ deleteStory(entry.id); if(S && S.id===entry.id) S=null; renderLibrary(); } }},"✕");
+    slot.appendChild(ex); slot.appendChild(del);
+    list.appendChild(slot);
+  });
+}
+function openStory(id){
+  const st = loadStory(id);
+  if(!st){ toast("Could not load that story"); return; }
+  S = st;
+  S.pendingDice = S.pendingDice || null;
+  updateSendButtons();
+  renderLog(); renderNovel(); hideDicePanel();
+  if(S.pendingDice) showDicePanel();
+  switchTab("story");
+  if(!S.log.length){
+    // story created but never started
+    $("#dockStatus").textContent = "Press Continue ▶ to let the story begin";
+  }
+}
+$("#btnNewStory").addEventListener("click", ()=>{ startWizard(); });
+$("#btnImportSave").addEventListener("click", ()=>$("#importFile").click());
+$("#importFile").addEventListener("change", async (ev)=>{
+  const f = ev.target.files[0]; ev.target.value = "";
+  if(!f) return;
+  try{
+    const st = JSON.parse(await f.text());
+    if(!st || !st.id || !Array.isArray(st.log)) throw new Error("not a POV Engine save file");
+    if(getIndex().some(e=>e.id===st.id) && !confirm("A story with this ID already exists — overwrite it?")){ st.id = uid(); }
+    S = st; saveStory();
+    toast("Story imported");
+    openStory(st.id);
+  }catch(e){ toast("Import failed: " + e.message); }
+});
+
+/* ---------------- API key persistence ---------------- */
+$("#apiKey").value = lsGet(LS_KEY,"");
+$("#apiKey").addEventListener("change", ()=>{ lsSet(LS_KEY, $("#apiKey").value.trim()); fetchModelList(); });
+$("#ttsKey").value = lsGet("povengine.ttskey","");
+$("#ttsKey").addEventListener("change", ()=>{ lsSet("povengine.ttskey", $("#ttsKey").value.trim()); toast("TTS key saved (this browser only)"); });
+$("#btnTestKey").addEventListener("click", ()=>testKey("#apiKey","#keyStatus"));
+
+/* ---------------- setup wizard ---------------- */
+let wizPageIdx = 0;
+function startWizard(){
+  wizPageIdx = 0;
+  $("#wizKey").value = apiKey();
+  showWizPage(0);
+  switchTab("setup");
+  $$("nav.tabs button").forEach(b=>b.classList.remove("active"));
+  fetchModelList();
+}
+function showWizPage(i){
+  wizPageIdx = i;
+  $$(".wizPage").forEach(p=>p.classList.toggle("active", Number(p.dataset.page)===i));
+  $$(".steps .step").forEach(s=>{
+    const n = Number(s.dataset.step);
+    s.classList.toggle("on", n===i); s.classList.toggle("done", n<i);
+  });
+}
+$("#wizTestKey").addEventListener("click", async ()=>{
+  const ok = await testKey("#wizKey","#wizKeyStatus");
+  if(ok){ lsSet(LS_KEY, $("#wizKey").value.trim()); $("#apiKey").value = $("#wizKey").value.trim(); fetchModelList(); }
+});
+$("#wizCancel0").addEventListener("click", ()=>switchTab("library"));
+$("#wizNext0").addEventListener("click", ()=>{
+  const k = $("#wizKey").value.trim();
+  if(k){ lsSet(LS_KEY, k); $("#apiKey").value = k; }
+  if(!$("#mRoleplay").value.trim()){ toast("Pick at least a roleplay model"); return; }
+  showWizPage(1);
+});
+$("#wizBack1").addEventListener("click", ()=>showWizPage(0));
+$("#wizNext1").addEventListener("click", ()=>{
+  if(!$("#wizLore").value.trim() && !$("#wizStart").value.trim()){ toast("Give the story at least some lore or a starting point"); return; }
+  showWizPage(2);
+});
+$("#wizBack2").addEventListener("click", ()=>showWizPage(1));
+$("#wizBegin").addEventListener("click", ()=>{
+  S = newStory();
+  S.title = $("#wizTitle").value.trim() || "Untitled story";
+  S.setup.protagonist = $("#wizProtagonist").value.trim();
+  S.setup.lore = $("#wizLore").value.trim();
+  S.setup.start = $("#wizStart").value.trim();
+  S.setup.style = $("#wizStyle").value.trim();
+  S.setup.guidelines = $("#wizGuidelines").value.trim();
+  S.config.language = $("#wizLanguage").value.trim() || "English";
+  S.config.models.roleplay = $("#mRoleplay").value.trim();
+  S.config.models.roleplay2 = $("#mRoleplay2").value.trim();
+  S.config.models.memory = $("#mMemory").value.trim() || $("#mRoleplay").value.trim();
+  S.config.models.novel = $("#mNovel").value.trim() || $("#mRoleplay").value.trim();
+  saveStory();
+  updateSendButtons();
+  renderLog(); hideDicePanel();
+  switchTab("story");
+  requestStory(); // opening beat
+});
+
+/* ---------------- init ---------------- */
+window.addEventListener("beforeunload", ()=>{ if(S) saveStory(); });
+(function init(){
+  $("#verSpan").textContent = "interactive novel · " + APP_VERSION;
+  const ix = getIndex();
+  switchTab("library");
+  if(apiKey()) fetchModelList();
+  if(!ix.length){
+    // gentle first-run hint
+    setTimeout(()=>toast("Welcome — add your OpenRouter key, then create your first story."), 600);
+  }
+})();
+</script>
+</body>
+</html>

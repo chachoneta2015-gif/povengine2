@@ -488,6 +488,8 @@ a{color:var(--accent)}
         <div class="dockrow">
           <button class="btn small" id="btnPaint" title="Generate an image of the current scene">🎨</button>
           <button class="btn small" id="btnNarrate" title="Narrate the latest scene aloud">🔊</button>
+          <button class="btn small" id="btnPause" title="Pause / resume narration" style="display:none">⏸</button>
+          <button class="btn small" id="btnStopAudio" title="Stop narration" style="display:none">⏹</button>
           <span class="rolllabel" id="dockStatus"></span>
           <div class="grow"></div>
           <button class="btn" id="btnSpark" title="Yield the beat: an NPC takes initiative or a small grounded event happens">✦ something happens</button>
@@ -579,11 +581,15 @@ a{color:var(--accent)}
       <label class="f">Narrator (TTS) provider</label>
       <select id="setTtsProvider">
         <option value="browser">Built-in browser voices — free, no setup (iPhone's Siri voices work well)</option>
+        <option value="openrouter">OpenRouter TTS — uses your OpenRouter key (e.g. Gemini TTS)</option>
         <option value="elevenlabs">ElevenLabs — best quality, needs its own API key</option>
         <option value="openai">OpenAI TTS — needs an OpenAI API key</option>
       </select>
+      <label class="f">TTS model <span class="pill">OpenRouter provider only</span></label>
+      <input type="text" id="setTtsModel" list="audioModelList" placeholder="e.g. google/gemini-3.1-flash-tts-preview — type to see audio models">
+      <datalist id="audioModelList"></datalist>
       <label class="f">Voice</label>
-      <input type="text" id="setTtsVoice" placeholder="browser: part of a voice name (e.g. 'Daniel') · ElevenLabs: a voice ID · OpenAI: alloy, onyx, nova…">
+      <input type="text" id="setTtsVoice" placeholder="browser: part of a voice name (e.g. 'Daniel') · OpenRouter/OpenAI: a voice name from the model's page · ElevenLabs: a voice ID">
       <label class="f">TTS API key <span class="pill">only for ElevenLabs / OpenAI · stays in this browser</span></label>
       <input type="password" id="ttsKey" placeholder="xi-… or sk-…">
       <label class="f">Narration speed</label>
@@ -731,7 +737,7 @@ Output format: the first line must be exactly "TITLE: " followed by a short evoc
 };
 
 /* ---------------- constants & storage ---------------- */
-const APP_VERSION = "v16";
+const APP_VERSION = "v17";
 const LS_KEY   = "povengine.apikey";
 const LS_INDEX = "povengine.index";
 const LS_STORY = id => "povengine.story." + id;
@@ -941,6 +947,29 @@ function extractImageUrl(msg){
   return null;
 }
 
+/* Text-to-speech via OpenRouter's dedicated endpoint (same key) */
+async function orSpeech(model, input, voice, speed){
+  const key = apiKey();
+  if(!key) throw new Error("No API key set.");
+  if(!model) throw new Error("No TTS model set (Settings → narration).");
+  const body = { model, input, response_format:"mp3" };
+  if(voice) body.voice = voice;
+  if(speed && speed !== 1) body.speed = speed;
+  let res;
+  try{
+    res = await fetch(OR_BASE + "/audio/speech", {
+      method:"POST",
+      headers:{"Authorization":"Bearer "+key, "Content-Type":"application/json", "HTTP-Referer":"https://localhost/pov-engine", "X-Title":"POV Engine"},
+      body: JSON.stringify(body)
+    });
+  }catch(e){ throw new Error(friendlyNetError(e)); }
+  if(!res.ok){
+    let detail=""; try{ detail=(await res.text()).slice(0,220); }catch(e){}
+    throw new Error(`OpenRouter TTS ${res.status}: ${detail}`);
+  }
+  return await res.blob();
+}
+
 /* IndexedDB store for generated images (too big for localStorage saves) */
 function idb(){
   return new Promise((ok, bad)=>{
@@ -988,6 +1017,7 @@ async function fetchModelList(){
     const data = await res.json();
     const dl = $("#modelList"); dl.innerHTML = "";
     const idl = $("#imageModelList"); if(idl) idl.innerHTML = "";
+    const adl0 = $("#audioModelList"); if(adl0) adl0.innerHTML = "";
     let imgCount = 0;
     (data.data||[]).sort((a,b)=> (a.id<b.id?-1:1)).forEach(m=>{
       const o = document.createElement("option");
@@ -998,6 +1028,12 @@ async function fetchModelList(){
         const oi = document.createElement("option");
         oi.value = m.id; oi.label = m.name || m.id;
         idl.appendChild(oi); imgCount++;
+      }
+      const adl = $("#audioModelList");
+      if(adl && Array.isArray(outMods) && outMods.includes("audio")){
+        const oa = document.createElement("option");
+        oa.value = m.id; oa.label = m.name || m.id;
+        adl.appendChild(oa);
       }
     });
     if(status) status.textContent = `${(data.data||[]).length} models loaded — type to search.`;
@@ -1550,31 +1586,69 @@ $("#btnTestImage").addEventListener("click", async ()=>{
   }finally{ b.disabled = false; b.textContent = "Test"; }
 });
 
-/* ---------------- narration (TTS) ---------------- */
-let currentAudio = null, browserSpeaking = false;
+/* ---------------- narration (TTS) with pause / stop ---------------- */
+let currentAudio = null, audioState = "idle"; // idle | loading | playing | paused
+function updateAudioUI(){
+  const active = audioState==="playing" || audioState==="paused";
+  $("#btnPause").style.display = active? "" : "none";
+  $("#btnPause").textContent = audioState==="paused"? "▶" : "⏸";
+  $("#btnStopAudio").style.display = active? "" : "none";
+  $("#btnNarrate").textContent = (audioState==="idle")? "🔊" : "🔊…";
+}
 function stopNarration(){
   try{ if(window.speechSynthesis) speechSynthesis.cancel(); }catch(e){}
   if(currentAudio){ try{ currentAudio.pause(); }catch(e){} currentAudio = null; }
-  browserSpeaking = false;
-  $("#btnNarrate").textContent = "🔊";
+  audioState = "idle";
+  updateAudioUI();
+}
+function pauseResumeNarration(){
+  if(audioState==="playing"){
+    if(currentAudio) currentAudio.pause();
+    else { try{ speechSynthesis.pause(); }catch(e){} }
+    audioState = "paused";
+  }else if(audioState==="paused"){
+    if(currentAudio) currentAudio.play().catch(()=>stopNarration());
+    else { try{ speechSynthesis.resume(); }catch(e){} }
+    audioState = "playing";
+  }
+  updateAudioUI();
 }
 async function narrateLast(){
   if(!S) return;
-  if(browserSpeaking || currentAudio){ stopNarration(); return; }
+  if(audioState!=="idle"){ stopNarration(); return; } // 🔊 while playing = stop
   const last = [...S.log].reverse().find(e=>e.t==="story");
   if(!last){ toast("Nothing to narrate yet"); return; }
   return narrateText(last.text);
 }
 async function narrateText(text){
   if(!S) return;
-  if(browserSpeaking || currentAudio) stopNarration(); // stop old, then play the new one
+  stopNarration();
   const cfg = S.config.tts || {provider:"browser"};
-  const b = $("#btnNarrate");
+  const rate = Math.max(.5, Math.min(2, Number(cfg.rate)||1));
   try{
-    if(cfg.provider==="elevenlabs" || cfg.provider==="openai"){
+    if(cfg.provider==="browser" || !cfg.provider){
+      if(!window.speechSynthesis){ toast("This browser has no built-in voices — pick OpenRouter TTS in Settings"); return; }
+      const u = new SpeechSynthesisUtterance(text);
+      const want = (cfg.voice||"").toLowerCase().trim();
+      if(want){
+        const v = speechSynthesis.getVoices().find(v=>v.name.toLowerCase().includes(want));
+        if(v) u.voice = v;
+      }
+      u.rate = rate;
+      u.onend = ()=>stopNarration();
+      u.onerror = ()=>stopNarration();
+      audioState = "playing"; updateAudioUI();
+      speechSynthesis.speak(u);
+      return;
+    }
+    audioState = "loading"; updateAudioUI();
+    $("#dockStatus").textContent = "generating narration…";
+    let blob;
+    if(cfg.provider==="openrouter"){
+      blob = await orSpeech((cfg.model||"google/gemini-3.1-flash-tts-preview").trim(), text, (cfg.voice||"").trim()||undefined, rate);
+    }else{
       const key = lsGet("povengine.ttskey","").trim();
-      if(!key){ toast("Add your TTS API key in Settings → narration"); switchTab("settings"); return; }
-      b.textContent = "🔊…"; $("#dockStatus").textContent = "generating narration…";
+      if(!key){ audioState="idle"; updateAudioUI(); $("#dockStatus").textContent=""; toast("Add your TTS API key in Settings → narration"); switchTab("settings"); return; }
       let res;
       if(cfg.provider==="elevenlabs"){
         const voice = (cfg.voice||"21m00Tcm4TlvDq8ikWAM").trim();
@@ -1585,37 +1659,25 @@ async function narrateText(text){
       }else{
         res = await fetch("https://api.openai.com/v1/audio/speech", {
           method:"POST", headers:{"Authorization":"Bearer "+key, "Content-Type":"application/json"},
-          body: JSON.stringify({model:"gpt-4o-mini-tts", voice:(cfg.voice||"onyx").trim(), input:text, speed:Number(cfg.rate)||1})
+          body: JSON.stringify({model:"gpt-4o-mini-tts", voice:(cfg.voice||"onyx").trim(), input:text, speed:rate})
         });
       }
       if(!res.ok){ let d=""; try{d=(await res.text()).slice(0,200);}catch(e){} throw new Error(`TTS ${res.status}: ${d}`); }
-      const blob = await res.blob();
-      currentAudio = new Audio(URL.createObjectURL(blob));
-      currentAudio.onended = ()=>stopNarration();
-      $("#dockStatus").textContent = "";
-      b.textContent = "⏹";
-      await currentAudio.play();
-    }else{
-      if(!window.speechSynthesis){ toast("This browser has no built-in voices — pick ElevenLabs or OpenAI in Settings"); return; }
-      const u = new SpeechSynthesisUtterance(text);
-      const want = (cfg.voice||"").toLowerCase().trim();
-      if(want){
-        const v = speechSynthesis.getVoices().find(v=>v.name.toLowerCase().includes(want));
-        if(v) u.voice = v;
-      }
-      u.rate = Math.max(.5, Math.min(2, Number(cfg.rate)||1));
-      u.onend = ()=>stopNarration();
-      u.onerror = ()=>stopNarration();
-      browserSpeaking = true;
-      b.textContent = "⏹";
-      speechSynthesis.speak(u);
+      blob = await res.blob();
     }
+    $("#dockStatus").textContent = "";
+    currentAudio = new Audio(URL.createObjectURL(blob));
+    currentAudio.onended = ()=>stopNarration();
+    audioState = "playing"; updateAudioUI();
+    await currentAudio.play();
   }catch(e){
     stopNarration(); $("#dockStatus").textContent = "";
     toast("Narration failed: " + e.message);
   }
 }
 $("#btnNarrate").addEventListener("click", narrateLast);
+$("#btnPause").addEventListener("click", pauseResumeNarration);
+$("#btnStopAudio").addEventListener("click", stopNarration);
 $("#inMain").addEventListener("keydown", e=>{ if((e.ctrlKey||e.metaKey) && e.key==="Enter") sendTurn(S.config.lastRoleplay||"roleplay"); });
 $("#btnSubToggle").addEventListener("click", ()=>{
   const sb = $("#subBoxes"); sb.classList.toggle("hidden");
@@ -2091,6 +2153,7 @@ const SETTINGS_BINDINGS = [
   ["#setImgStyle", ()=>S.config.imageStyle, v=>S.config.imageStyle=v],
   ["#setVisualCanon", ()=>S.config.visualCanon||"", v=>S.config.visualCanon=v],
   ["#setTtsProvider", ()=>(S.config.tts&&S.config.tts.provider)||"browser", v=>{S.config.tts=S.config.tts||{}; S.config.tts.provider=v;}],
+  ["#setTtsModel", ()=>(S.config.tts&&S.config.tts.model)||"", v=>{S.config.tts=S.config.tts||{}; S.config.tts.model=v.trim();}],
   ["#setTtsVoice", ()=>(S.config.tts&&S.config.tts.voice)||"", v=>{S.config.tts=S.config.tts||{}; S.config.tts.voice=v.trim();}],
   ["#setTtsRate", ()=>(S.config.tts&&S.config.tts.rate)||1, v=>{S.config.tts=S.config.tts||{}; S.config.tts.rate=Math.max(.5,Math.min(2,Number(v)||1));}],
   ["#setMMemory", ()=>S.config.models.memory, v=>S.config.models.memory=v.trim()],
